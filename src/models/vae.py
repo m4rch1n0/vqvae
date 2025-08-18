@@ -5,10 +5,10 @@ import torch.nn.functional as F
 
 
 class Encoder(nn.Module):
-    def __init__(self, in_channels: int = 1, channels=(32, 64, 128), latent_dim: int = 16):
+    def __init__(self, input_channels: int = 1, channels=(32, 64, 128), latent_dim: int = 16):
         super().__init__()
         layers = []
-        prev = in_channels
+        prev = input_channels
         for ch in channels:
             layers.extend([
                 nn.Conv2d(prev, ch, kernel_size=3, stride=2, padding=1),
@@ -16,7 +16,7 @@ class Encoder(nn.Module):
             ])
             prev = ch
         self.conv = nn.Sequential(*layers)
-        # For MNIST 28x28, three stride-2 convs yield 4x4 feature maps
+        
         feat_dim = channels[-1] * 4 * 4
         self.fc_mu = nn.Linear(feat_dim, latent_dim)
         self.fc_logvar = nn.Linear(feat_dim, latent_dim)
@@ -75,8 +75,8 @@ class VAE(nn.Module):
         x_logits = self.decoder(z)
         return x_logits, mu, logvar, z
 
-    def loss(self, x: torch.Tensor, x_logits: torch.Tensor, mu: torch.Tensor, logvar: torch.Tensor, beta: float = 1.0):
-        """Compute ELBO = recon + beta * KL.
+    def loss(self, x: torch.Tensor, x_logits: torch.Tensor, mu: torch.Tensor, logvar: torch.Tensor):
+        """Compute ELBO = recon + KL.
 
         If recon_loss == "bce", use numerically-stable BCE-with-logits.
         If recon_loss == "mse", apply sigmoid on logits and compute MSE.
@@ -84,8 +84,8 @@ class VAE(nn.Module):
         if self.recon_loss == "bce":
             recon = F.binary_cross_entropy_with_logits(x_logits, x, reduction='sum') / x.size(0)
         else:
-            recon = F.mse_loss(torch.sigmoid(x_logits), x, reduction='mean')
+            recon = F.mse_loss(torch.sigmoid(x_logits), x, reduction='sum') / x.size(0)
         # KL between diagonal Gaussians
         kl = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp()) / x.size(0)
-        elbo = recon + beta * kl
+        elbo = recon + kl
         return elbo, recon, kl
