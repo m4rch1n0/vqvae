@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Tuple, Optional
+from typing import Tuple
 
 import torch
-from torch import amp
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -18,16 +17,12 @@ class TrainingEngine:
         model: VAE,
         optimizer: torch.optim.Optimizer,
         device: torch.device,
-        use_amp: bool,
         beta: float,
-        scaler: Optional[amp.GradScaler] = None,
     ) -> None:
         self.model = model
         self.optimizer = optimizer
         self.device = device
-        self.use_amp = bool(use_amp) and (device.type == "cuda")
         self.beta = beta
-        self.scaler = scaler if self.use_amp else None
 
     def _run_epoch(self, loader: DataLoader, train: bool, epoch: int, num_epochs: int) -> Tuple[float, float, float]:
         """Run a single epoch over a DataLoader and return averaged metrics."""
@@ -38,19 +33,13 @@ class TrainingEngine:
         pbar = tqdm(loader, desc=f"{desc} [{epoch}/{num_epochs}]")
         for x, _ in pbar:
             x = x.to(self.device)
-            with amp.autocast(device_type=self.device.type, enabled=self.use_amp):
-                x_logits, mu, logvar, _ = self.model(x)
-                loss, recon, kl = self.model.loss(x, x_logits, mu, logvar, beta=self.beta)
+            x_logits, mu, logvar, _ = self.model(x)
+            loss, recon, kl = self.model.loss(x, x_logits, mu, logvar, beta=self.beta)
 
             if train:
                 self.optimizer.zero_grad(set_to_none=True)
-                if self.scaler is not None:
-                    self.scaler.scale(loss).backward()
-                    self.scaler.step(self.optimizer)
-                    self.scaler.update()
-                else:
-                    loss.backward()
-                    self.optimizer.step()
+                loss.backward()
+                self.optimizer.step()
 
             total += float(loss.item())
             total_recon += float(recon.item())

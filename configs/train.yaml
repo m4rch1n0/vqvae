@@ -3,7 +3,6 @@ device: auto  # auto -> 'cuda' se disponibile altrimenti 'cpu'
 max_epochs: 20
 lr: 1e-3
 weight_decay: 0.0
-amp: true
 log_interval: 100
 val_interval: 1
 early_stopping_patience: 5

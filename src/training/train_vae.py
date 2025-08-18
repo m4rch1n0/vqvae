@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import torch
-from torch import amp
 from torch.optim import Adam
 from omegaconf import OmegaConf
 import hydra
@@ -36,7 +35,6 @@ def main(cfg) -> None:
         'max_epochs': cfg.max_epochs,
         'lr': cfg.lr,
         'weight_decay': cfg.weight_decay,
-        'amp': cfg.amp,
         'latent_dim': vae_cfg.latent_dim,
         'beta': vae_cfg.beta,
         'recon_loss': vae_cfg.recon_loss,
@@ -63,17 +61,13 @@ def main(cfg) -> None:
 
     # Optim and AMP
     opt = Adam(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
-    use_cuda = (device.type == 'cuda')
-    scaler = amp.GradScaler('cuda' if use_cuda else None, enabled=bool(cfg.amp) and use_cuda)
 
     # Train via engine
     engine = TrainingEngine(
         model=model,
         optimizer=opt,
         device=device,
-        use_amp=cfg.amp,
         beta=vae_cfg.beta,
-        scaler=scaler,
     )
 
     ckpt_dir = Path(to_absolute_path(cfg.ckpt_dir))

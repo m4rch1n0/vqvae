@@ -12,20 +12,17 @@ class Encoder(nn.Module):
         for ch in channels:
             layers.extend([
                 nn.Conv2d(prev, ch, kernel_size=3, stride=2, padding=1),
-                nn.BatchNorm2d(ch),
                 nn.ReLU(inplace=True),
             ])
             prev = ch
         self.conv = nn.Sequential(*layers)
-        # Make spatial bottleneck resolution-independent
-        self.to_fixed = nn.AdaptiveAvgPool2d((4, 4))
+        # For MNIST 28x28, three stride-2 convs yield 4x4 feature maps
         feat_dim = channels[-1] * 4 * 4
         self.fc_mu = nn.Linear(feat_dim, latent_dim)
         self.fc_logvar = nn.Linear(feat_dim, latent_dim)
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         h = self.conv(x)
-        h = self.to_fixed(h)
         h = h.view(h.size(0), -1)
         mu = self.fc_mu(h)
         logvar = self.fc_logvar(h)
@@ -39,13 +36,11 @@ class Decoder(nn.Module):
         # 4 -> 7
         self.deconv1 = nn.Sequential(
             nn.ConvTranspose2d(channels[0], channels[1], kernel_size=3, stride=2, padding=1, output_padding=0),
-            nn.BatchNorm2d(channels[1]),
             nn.ReLU(inplace=True),
         )
         # 7 -> 14
         self.deconv2 = nn.Sequential(
             nn.ConvTranspose2d(channels[1], channels[2], kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm2d(channels[2]),
             nn.ReLU(inplace=True),
         )
         # 14 -> 28
