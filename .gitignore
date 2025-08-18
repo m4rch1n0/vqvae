@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# Editors/OS
+.vscode/
+.idea/
+.DS_Store
+
+# Data and experiment artifacts
+/data/
+/experiments/
+/outputs/
+**/.hydra/
+*.pt
+*.ckpt
+*.log
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+*.out
+*.log
