@@ -1,0 +1,10 @@
+# PyTorch + ROCm 6.4 (installa con pip torch torchvision --index-url ufficiale ROCm https://download.pytorch.org/whl/rocm6.4)
+torch
+torchvision
+# Config & logging
+hydra-core>=1.3
+mlflow>=2.14
+# Utils
+numpy
+scipy
+tqdm

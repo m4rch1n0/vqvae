@@ -1,0 +1,8 @@
+# Dataset & DataLoader
+root: ./data
+name: MNIST
+batch_size: 64
+num_workers: 8
+pin_memory: true
+persistent_workers: true
+augment: false
