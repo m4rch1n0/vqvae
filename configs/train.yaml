@@ -5,10 +5,10 @@ lr: 1e-3
 weight_decay: 0.0
 log_interval: 100
 val_interval: 1
-early_stopping_patience: 5
+early_stop: 5
 ckpt_dir: ./experiments/vae_mnist/checkpoints
 out_dir: ./experiments/vae_mnist
 save_latents: true
 mlflow_tracking_uri: ./experiments/mlruns
 experiment_name: VAE_MNIST
-run_name: vae_latent16_beta1
+run_name: vae_latent16

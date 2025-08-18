@@ -36,7 +36,6 @@ def main(cfg) -> None:
         'lr': cfg.lr,
         'weight_decay': cfg.weight_decay,
         'latent_dim': vae_cfg.latent_dim,
-        'beta': vae_cfg.beta,
         'recon_loss': vae_cfg.recon_loss,
     })
 
@@ -59,7 +58,7 @@ def main(cfg) -> None:
         recon_loss=vae_cfg.recon_loss,
     ).to(device)
 
-    # Optim and AMP
+    # Optimizer
     opt = Adam(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
 
     # Train via engine
@@ -67,7 +66,6 @@ def main(cfg) -> None:
         model=model,
         optimizer=opt,
         device=device,
-        beta=vae_cfg.beta,
     )
 
     ckpt_dir = Path(to_absolute_path(cfg.ckpt_dir))
@@ -77,7 +75,7 @@ def main(cfg) -> None:
         train_loader=train_loader,
         val_loader=val_loader,
         num_epochs=cfg.max_epochs,
-        early_stopping_patience=cfg.early_stopping_patience,
+        early_stop=cfg.early_stop,
         checkpoint_dir=ckpt_dir,
         logger=logger,
         output_dir=out_dir,

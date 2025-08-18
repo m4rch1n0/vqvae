@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from pathlib import Path
 from typing import Tuple
 
@@ -17,12 +15,10 @@ class TrainingEngine:
         model: VAE,
         optimizer: torch.optim.Optimizer,
         device: torch.device,
-        beta: float,
     ) -> None:
         self.model = model
         self.optimizer = optimizer
         self.device = device
-        self.beta = beta
 
     def _run_epoch(self, loader: DataLoader, train: bool, epoch: int, num_epochs: int) -> Tuple[float, float, float]:
         """Run a single epoch over a DataLoader and return averaged metrics."""
@@ -34,7 +30,7 @@ class TrainingEngine:
         for x, _ in pbar:
             x = x.to(self.device)
             x_logits, mu, logvar, _ = self.model(x)
-            loss, recon, kl = self.model.loss(x, x_logits, mu, logvar, beta=self.beta)
+            loss, recon, kl = self.model.loss(x, x_logits, mu, logvar)
 
             if train:
                 self.optimizer.zero_grad(set_to_none=True)
@@ -58,7 +54,7 @@ class TrainingEngine:
         train_loader: DataLoader,
         val_loader: DataLoader,
         num_epochs: int,
-        early_stopping_patience: int,
+        early_stop: int,
         checkpoint_dir: Path,
         logger,
         output_dir: Path,
@@ -90,7 +86,7 @@ class TrainingEngine:
                 torch.save({'model': self.model.state_dict(), 'epoch': epoch}, checkpoint_dir / 'best.pt')
             else:
                 no_improve += 1
-                if no_improve >= early_stopping_patience:
+                if no_improve >= early_stop:
                     print(f"Early stopping at epoch {epoch}")
                     break
 
@@ -101,6 +97,7 @@ class TrainingEngine:
         self._save_recon_grid(val_loader, output_dir, logger)
 
     def _save_recon_grid(self, val_loader: DataLoader, output_dir: Path, logger) -> None:
+        """Generate and save a comparison grid of original vs reconstructed images."""
         self.model.eval()
         import torchvision.utils as vutils
         import torchvision
