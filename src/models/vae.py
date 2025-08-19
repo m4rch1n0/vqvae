@@ -60,14 +60,14 @@ class VAE(nn.Module):
         super().__init__()
         self.encoder = Encoder(in_channels, enc_channels, latent_dim)
         self.decoder = Decoder(in_channels, dec_channels, latent_dim)
-        assert recon_loss in {"bce", "mse"}
+        assert recon_loss in {"bce", "mse"}  # must assure that the loss is either binary cross entropy or mean squared error
         self.recon_loss = recon_loss
 
     @staticmethod
     def reparameterize(mu: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
-        return mu + eps * std
+        return mu + eps * std  # reparameterization trick
 
     def forward(self, x: torch.Tensor):
         mu, logvar = self.encoder(x)
