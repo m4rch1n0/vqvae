@@ -1,3 +1,8 @@
+"""
+Builds an undirected k-nearest neighbors (k-NN) graph from latent vectors.
+
+Full documentation: see docs/knn_graph.md
+"""
 from typing import Tuple, Dict
 import numpy as np
 from scipy import sparse
