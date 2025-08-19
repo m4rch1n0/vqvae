@@ -1,40 +1,30 @@
 
-Builds an undirected k-nearest neighbors (k-NN) graph from latent vectors.
+## build_knn_graph
+Builds an undirected k-nearest neighbors graph from latent vectors.
 
-#### Signature
-`build_knn_graph(z, k=10, metric="euclidean", mode="distance", sym="mutual")`
+**Signature:** `build_knn_graph(z, k=10, metric="euclidean", mode="distance", sym="mutual")`
 
-#### Arguments
-- **z**: array of shape (N, D)
-- **k**: neighbors per node
-- **metric**: any metric supported by sklearn (euclidean will fit our case)
-- **mode**: "distance" (weights = distances) or "connectivity" (weights = 1)
-- **sym**: graph symmetrization. "mutual" (keep mutual neighbors) or "union" (keep any)
+**Arguments:**
+- `z`: array of shape (N, D)
+- `k`: neighbors per node (default: 10)
+- `metric`: distance metric, sklearn-compatible (euclidean will fit our case)
+- `mode`: "distance" (weights = distances) or "connectivity" (weights = 1)
+- `sym`: symmetrization method - "mutual" or "union" (mutual keeps mutual neighbors, union keeps any)
 
-#### Returns
-- **W**: `scipy.sparse.csr_matrix` of shape (N, N); undirected with zero diagonal
-- **neighbors**: dict with `"distances"` (float32) and `"indices"`, each of shape (N, k') where k' ≤ k
-
-#### Details
-- Uses `sklearn.neighbors.NearestNeighbors` for neighbor search
-- Caps `k` to `N-1`. Queries `k+1` then drops self
-- For `N=0`, returns empty CSR and empty neighbor arrays
+**Returns:**
+- `W`: sparse CSR matrix (N, N), undirected with zero diagonal
+- `neighbors`: dict with `"distances"` and `"indices"` arrays (N, k') where k' $\leq$ k
 
 
-Computes the largest connected component mask.
+## largest_connected_component
+Returns boolean mask of nodes in the largest connected component.
 
-#### Signature
-`largest_connected_component(W)`
+**Signature:** `largest_connected_component(W)`
 
-#### Arguments
-- **W**: `scipy.sparse.csr_matrix` adjacency (undirected)
+**Arguments:**
+- `W`: sparse CSR adjacency matrix (undirected)
 
-#### Returns
-- **mask**: boolean array of shape (N,)
+**Returns:**
+- `mask`: boolean array (N,)
 
-#### Details
-- Use it to restrict the graph (and data) to a single connected subgraph so graph methods assuming connectivity (e.g., shortest paths, diffusion, spectral) behave well
-- If already connected, returns all `True`
-- Uses `scipy.sparse.csgraph.connected_components`
-
-new test
+**Note:** Use to restrict graph to single connected subgraph for methods requiring connectivity (shortest paths, spectral analysis, etc.).
