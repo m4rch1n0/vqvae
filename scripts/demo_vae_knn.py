@@ -24,8 +24,6 @@ from omegaconf import OmegaConf
 from hydra.utils import to_absolute_path
 from sklearn.decomposition import PCA
 
-# Add src to path
-sys.path.append(str(Path(__file__).parent.parent))
 from src.data.mnist import get_mnist_loaders
 from src.models.vae import VAE
 from src.utils.system import set_seed, get_device
@@ -49,7 +47,7 @@ def get_config():
 
 def create_output_dir():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    demo_dir = Path(f"demo_outputs/vae_geodesic_{timestamp}")
+    demo_dir = Path(f"demo_outputs/vae_mnist_geodesic_{timestamp}")
     demo_dir.mkdir(parents=True, exist_ok=True)
     return demo_dir
 

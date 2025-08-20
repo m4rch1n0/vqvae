@@ -1,13 +1,10 @@
 """
 Geodesic Distance Analysis for different k values
 """
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import sparse
-import sys
-import os
-
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from src.geo.knn_graph import build_knn_graph
 from src.geo.geo_shortest_paths import dijkstra_multi_source
 
