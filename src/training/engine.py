@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Tuple
 
 import torch
@@ -55,49 +54,60 @@ class TrainingEngine:
         val_loader: DataLoader,
         num_epochs: int,
         early_stop: int,
-        checkpoint_dir: Path,
+        checkpoint_dir,
         logger,
-        output_dir: Path,
+        output_dir,
         save_latents_flag: bool,
     ) -> None:
-        """Train for num_epochs with early stopping and log artifacts/metrics."""
+        """Train for num_epochs with early stopping"""
         best_val = float('inf')
         no_improve = 0
-        checkpoint_dir.mkdir(parents=True, exist_ok=True)
-        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Create directories only if provided
+        if checkpoint_dir is not None:
+            checkpoint_dir.mkdir(parents=True, exist_ok=True)
+        if output_dir is not None:
+            output_dir.mkdir(parents=True, exist_ok=True)
 
         for epoch in range(1, num_epochs + 1):
             print(f"Epoch {epoch}/{num_epochs}")
             train_loss, train_recon, train_kl = self._run_epoch(train_loader, train=True, epoch=epoch, num_epochs=num_epochs)
             val_loss, val_recon, val_kl = self._run_epoch(val_loader, train=False, epoch=epoch, num_epochs=num_epochs)
 
-            logger.log_metrics({
-                'train_loss': train_loss,
-                'train_recon': train_recon,
-                'train_kl': train_kl,
-                'val_loss': val_loss,
-                'val_recon': val_recon,
-                'val_kl': val_kl,
-            }, step=epoch)
+            if logger is not None:
+                logger.log_metrics({
+                    'train_loss': train_loss,
+                    'train_recon': train_recon,
+                    'train_kl': train_kl,
+                    'val_loss': val_loss,
+                    'val_recon': val_recon,
+                    'val_kl': val_kl,
+                }, step=epoch)
 
             if val_loss < best_val:
                 best_val = val_loss
                 no_improve = 0
-                torch.save({'model': self.model.state_dict(), 'epoch': epoch}, checkpoint_dir / 'best.pt')
+                # Save checkpoint only if directory is provided
+                if checkpoint_dir is not None:
+                    torch.save({'model_state_dict': self.model.state_dict(), 'epoch': epoch}, checkpoint_dir / 'best.pt')
             else:
                 no_improve += 1
-                if no_improve >= early_stop:
+                if early_stop and no_improve >= early_stop:
                     print(f"Early stopping at epoch {epoch}")
                     break
 
-        if save_latents_flag:
+        if save_latents_flag and output_dir is not None:
             save_latents(self.model, train_loader, self.device, output_dir / 'latents_train')
             save_latents(self.model, val_loader, self.device, output_dir / 'latents_val')
 
-        self._save_recon_grid(val_loader, output_dir, logger)
+        if output_dir is not None:
+            self._save_recon_grid(val_loader, output_dir, logger)
 
-    def _save_recon_grid(self, val_loader: DataLoader, output_dir: Path, logger) -> None:
+    def _save_recon_grid(self, val_loader: DataLoader, output_dir, logger) -> None:
         """Generate and save a comparison grid of original vs reconstructed images."""
+        if output_dir is None:
+            return
+            
         self.model.eval()
         import torchvision.utils as vutils
         import torchvision
@@ -109,4 +119,5 @@ class TrainingEngine:
         grid = vutils.make_grid(torch.cat([x[:8], x_rec[:8]], dim=0), nrow=8)
         img_path = output_dir / 'recon_grid.png'
         torchvision.utils.save_image(grid, img_path)
-        logger.log_artifact(img_path)
+        if logger is not None:
+            logger.log_artifact(img_path)
