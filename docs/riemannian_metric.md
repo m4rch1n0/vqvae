@@ -26,7 +26,7 @@ Calculates Riemannian edge lengths between latent points using decoder-induced m
 **Returns:**
 - `edge_lengths`: tensor of Riemannian distances (num_edges,)
 
-**Formula:** $L_{ij} ≈ 0.5 * (||J(z_i)(z_j - z_i)||_2 + ||J(z_j)(z_j - z_i)||_2)$
+**Formula:** $L_{ij} \approx 0.5 * (\|J(z_i)(z_j - z_i)\|_2 + \|J(z_j)(z_j - z_i)\|_2)$
 
 **Note:** Averages lengths computed from both endpoints for better geodesic approximation. The metric is induced by the decoder: $G(z) = J(z)^T J(z)$.
 
@@ -44,4 +44,4 @@ Internal function that computes Jacobian-vector products using automatic differe
 **Returns:**
 - `torch.Tensor`: $J(z)$ * direction flattened to (batch_size, num_pixels)
 
-**Note:** Uses `torch.autograd.functional.jvp` to avoid computing the full Jacobian matrix. For small displacement $\delta z: local\_length ≈ ||J(z) \delta z||_2$.
+**Note:** Uses `torch.autograd.functional.jvp` to avoid computing the full Jacobian matrix. For small displacement $\delta z: local\_length \approx \|J(z) \delta z\|_2$.
