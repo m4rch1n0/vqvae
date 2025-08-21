@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -euo pipefail
+export PYTHONPATH=./
+
+# VQ-VAE Experiments Orchestration Script
+# Run complete experimental pipeline
+
+echo "Starting VQ-VAE experimental pipeline..."
+
+# Function to check if previous step completed successfully
+check_completion() {
+    if [ $? -ne 0 ]; then
+        echo "Error in: $1"
+        exit 1
+    fi
+    echo "Completed: $1"
+}
+
+# Train VAE model (if not exists)
+if [ ! -f "experiments/vae_mnist/checkpoints/best.pt" ]; then
+    echo "Training VAE model..."
+    ./scripts/train_vae.sh
+    check_completion "VAE training"
+else
+    echo "VAE model already trained, skipping..."
+fi
+
+# Run Riemannian sanity checks
+echo "Running Riemannian sanity checks..."
+python3 experiments/geo/riemann_sanity_check.py
+check_completion "Riemannian sanity checks"
+
+# Run Riemannian graph effects analysis
+echo "Analyzing Riemannian graph effects..."
+python3 experiments/geo/run_riemann_experiments.py
+check_completion "Riemannian graph effects analysis"
+
+echo "All experiments completed successfully!"
+echo "Results available in experiments/geo/"
