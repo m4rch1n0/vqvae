@@ -1,0 +1,104 @@
+# Demos
+
+Interactive examples demonstrating VAE latent space analysis with geodesic metrics.
+
+## vae_knn_analysis
+
+Comprehensive latent space analysis demo that trains a VAE and visualizes geodesic distance patterns across MNIST digit classes.
+
+**Signature:** `python demos/vae_knn_analysis.py`
+
+**Functionality:**
+- Trains 2D VAE on MNIST (5 epochs for demo purposes)
+- Extracts latent representations for validation set
+- Builds k-NN graphs with multiple k values [3, 4, 5, 6]
+- Computes geodesic distances from digit centroids
+- Generates comprehensive visualizations
+
+**Configuration:**
+```python
+{
+    'seed': 42,
+    'device': 'auto',
+    'max_epochs': 5,
+    'lr': 1e-3,
+    'weight_decay': 1e-4,
+    'early_stop': False,
+    'max_samples': 300,
+    'k_values': [3, 4, 5, 6]
+}
+```
+
+**Output Directory:** `demo_outputs/vae_mnist_geodesic_{timestamp}/`
+
+**Generated Files:**
+- `geodesic_analysis_k{k}.png` - Distance heatmaps for each k value
+- `latent_distribution.png` - 2D latent space scatter plot with digit classes
+
+**Visualization Features:**
+- Latent Distribution: Scatter plot showing digit separation in 2D latent space
+- Geodesic Distance Heatmaps: From each digit centroid to all latent points
+- k-NN Connectivity: Analysis of neighborhood structure for different k values
+
+**Note:** Uses limited epochs (5) and samples (300) for fast demonstration. Increase for research-quality analysis.
+
+## interactive_exploration
+
+Interactive visualization tool for exploring k-NN graph connectivity and geodesic distance patterns using synthetic data.
+
+**Signature:** `python demos/interactive_exploration.py`
+
+**Data Generation:**
+- Creates synthetic 2D latent data simulating MNIST digit distributions
+- 10 clusters arranged in circular pattern with realistic variance
+- 30 points per digit class (300 total points)
+
+**Interactive Features:**
+- k-NN Parameter Control: Adjust k value dynamically [1-20]
+- Distance Metric Toggle: Switch between Euclidean/geodesic visualization
+- Click Exploration: Click points to see distance patterns
+- Real-time Updates: Immediate graph and distance recalculation
+
+**Synthetic Data Pattern:**
+```python
+# Digit centers arranged in circle
+for i in range(10):
+    angle = 2 * np.pi * i / 10
+    cx = 3 * np.cos(angle)
+    cy = 3 * np.sin(angle)
+    centers.append((cx, cy))
+```
+
+**Note:** Uses synthetic data for responsiveness. Real VAE latents can be loaded by modifying data generation function.
+
+## Running Demos
+
+**Prerequisites:**
+1. Complete environment setup: `./scripts/setup_env.sh`
+2. Download MNIST data: `./scripts/download_data.sh`
+
+**Execution:**
+```bash
+# Full latent space analysis (requires VAE training)
+python demos/vae_knn_analysis.py
+
+# Interactive exploration (synthetic data, no training needed)
+python demos/interactive_exploration.py
+```
+
+**Dependencies:**
+- Trained VAE model (automatically trained by vae_knn_analysis.py)
+- matplotlib, numpy, sklearn
+- Interactive demo requires plotly/bokeh backend
+
+**Customization:**
+- Modify `get_config()` in vae_knn_analysis.py for different training parameters
+- Adjust k_values range for different connectivity analysis
+- Change max_samples for faster/more comprehensive analysis
+- Edit synthetic data generation in interactive_exploration.py for different patterns
+
+**Output Interpretation:**
+- Tight clusters: Good latent space organization by digit class
+- Smooth geodesic transitions: Well-structured manifold learned by VAE
+- k-NN connectivity: Higher k values show broader neighborhood relationships
+- Distance heatmaps: Reveal geometric structure and class separability

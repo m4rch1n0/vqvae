@@ -24,6 +24,9 @@ from omegaconf import OmegaConf
 from hydra.utils import to_absolute_path
 from sklearn.decomposition import PCA
 
+# Add project root to path
+sys.path.append(str(Path(__file__).parent.parent))
+
 from src.data.mnist import get_mnist_loaders
 from src.models.vae import VAE
 from src.utils.system import set_seed, get_device
