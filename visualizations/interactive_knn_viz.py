@@ -191,7 +191,7 @@ class InteractiveKNNVisualizer:
         # Configure title and labels
         title = (f'k={k} | Node: {source_idx} | '
                 f'Connected: {n_connected}/{len(self.latents_2d)} ({connectivity_pct:.1f}%) | '
-                f'Mean dist: {mean_distance:.2f}')
+                f'Mean dist: {mean_distance:.3f}')
         
         self.ax.set_title(title, fontsize=12, fontweight='bold')
         self.ax.set_xlabel('Latent Dimension 1')

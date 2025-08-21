@@ -24,7 +24,7 @@ def plot_geodesic_distances_vs_k(z, k_values, source_idx=0, output_path=None):
     if len(k_values) == 1:
         axes = [axes]
     
-    print(f"Source node: index={source_idx}, coordinates=({z[source_idx, 0]:.2f}, {z[source_idx, 1]:.2f})")
+    print(f"Source node: index={source_idx}, coordinates=({z[source_idx, 0]:.3f}, {z[source_idx, 1]:.3f})")
     
     for i, k in enumerate(k_values):
         # Build graph and analyze connectivity
@@ -59,8 +59,8 @@ def plot_geodesic_distances_vs_k(z, k_values, source_idx=0, output_path=None):
         print(f"k={k}:")
         print(f"  Connected nodes: {n_connected}/{len(z)} ({connectivity_pct:.1f}%)")
         print(f"  Graph components: {n_components}")
-        print(f"  Geodesic distances - min: {min_dist:.2f} (source to itself), max: {max_dist:.2f}")
-        print(f"                     - min to others: {min_nonzero:.2f}, mean: {mean_nonzero:.2f}")
+        print(f"  Geodesic distances - min: {min_dist:.3f} (source to itself), max: {max_dist:.3f}")
+        print(f"                     - min to others: {min_nonzero:.3f}, mean: {mean_nonzero:.3f}")
         print()
         
         # Plot disconnected nodes in black
