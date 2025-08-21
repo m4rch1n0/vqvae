@@ -46,7 +46,6 @@ def create_synthetic_latents():
 def main():
     """Run the interactive k-NN geodesic visualization demo."""
     print("Interactive VAE k-NN Geodesic Visualization")
-    print("=" * 45)
     
     # Generate synthetic data
     print("Generating synthetic latent data...")
