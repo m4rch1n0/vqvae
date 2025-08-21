@@ -112,6 +112,9 @@ python experiments/geo/riemann_sanity_check.py
 
 # 3. Graph effects analysis  
 python experiments/geo/run_riemann_experiments.py
+
+# 4. Geodesic k-medoids analysis (post-hoc quantization)
+python demos/kmedoids_geodesic_analysis.py
 ```
 
 **Prerequisites:**
@@ -124,6 +127,37 @@ python experiments/geo/run_riemann_experiments.py
 - SciPy (sparse matrices, Dijkstra)
 - NumPy, matplotlib
 - Project modules: geo, models
+
+## Geodesic K-medoids Analysis (Post-hoc Quantization)
+
+Runs k-medoids clustering on a k-NN graph (Euclidean edge weights) and evaluates code usage and optional label alignment.
+
+Signature: `python demos/kmedoids_geodesic_analysis.py`
+
+Environment variables (optional):
+
+```bash
+KM_Z_PATH=experiments/vae_mnist/latents_val/z.pt \
+KM_Y_PATH=experiments/vae_mnist/latents_val/y.pt \
+KM_K_GRAPH=10 \
+KM_GRAPH_SYM=mutual \  # mutual|union
+KM_K_VALUES=32,64,128 \
+KM_INITS=kpp,random \
+KM_SEED=42 \
+python demos/kmedoids_geodesic_analysis.py
+```
+
+Outputs (in `demo_outputs/kmedoids_geodesic_*`):
+- `metrics.csv|json`: per-(K,init) metrics: geodesic QE (finite nodes), finite fraction, purity, NMI, ARI, perplexity
+- `elbow.png`: QE vs K curves (one line per init)
+- `pca_clusters_euclidean_K{K}_{init}.png`: PCA of distance-to-medoids features with medoids highlighted (first configuration)
+- `code_usage_euclidean_K{K}_{init}.png`: code usage histogram with perplexity (first configuration)
+
+Interpretation tips:
+- Lower geodesic QE at fixed K suggests better codebook fit to manifold geometry
+- Higher purity/NMI/ARI indicates stronger label alignment (if labels available)
+- Higher finite fraction means more stable geodesic assignments
+- Perplexity close to K implies balanced code usage; very low perplexity suggests code collapse
 
 ## Configuration Tuning
 

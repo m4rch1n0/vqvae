@@ -24,8 +24,9 @@ vqvae/
 │   ├── training/          # Training pipeline
 │   └── utils/             # System utilities
 ├── demos/                  # Interactive examples
-│   ├── vae_knn_analysis.py      # Main latent space analysis demo
-│   └── interactive_exploration.py  # Interactive k-NN visualization
+│   ├── vae_knn_analysis.py           # Main latent space analysis demo
+│   ├── interactive_exploration.py    # Interactive k-NN visualization
+│   └── kmedoids_geodesic_analysis.py # Geodesic K-medoids (post-hoc quantization)
 ├── experiments/           # Research experiments  
 │   ├── geo/              # Riemannian geometry experiments
 │   └── vae_mnist/        # Trained models and latents
@@ -57,6 +58,7 @@ Run demos:
 ```bash
 python demos/vae_knn_analysis.py
 python demos/interactive_exploration.py
+python demos/kmedoids_geodesic_analysis.py
 ```
 
 Full experimental pipeline:

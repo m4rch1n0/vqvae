@@ -13,7 +13,6 @@ The analysis visualizes:
 This is useful for evaluating the quality of latent representations and
 understanding how manifold structure emerges in VAE latent spaces.
 """
-import sys
 from pathlib import Path
 from datetime import datetime
 
@@ -24,8 +23,6 @@ from omegaconf import OmegaConf
 from hydra.utils import to_absolute_path
 from sklearn.decomposition import PCA
 
-# Add project root to path
-sys.path.append(str(Path(__file__).parent.parent))
 
 from src.data.mnist import get_mnist_loaders
 from src.models.vae import VAE
@@ -182,7 +179,6 @@ def plot_distribution(latents_2d, labels, output_dir):
 
 
 def plot_geodesic_for_k(latents_2d, k, centroid_indices, output_dir):
-    from scipy import sparse
     
     available_digits = list(centroid_indices.keys())
     n_digits = len(available_digits)

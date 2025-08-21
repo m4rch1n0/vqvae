@@ -71,6 +71,32 @@ for i in range(10):
 
 **Note:** Uses synthetic data for responsiveness. Real VAE latents can be loaded by modifying data generation function.
 
+## kmedoids_geodesic_analysis
+
+Post-hoc geodesic k-medoids clustering on a latent space using a k-NN graph. Uses precomputed latents (and optional labels) to evaluate codebook quality.
+
+**Signature:** `python demos/kmedoids_geodesic_analysis.py`
+
+**Configuration (env vars):**
+```bash
+KM_Z_PATH=experiments/vae_mnist/latents_val/z.pt \
+KM_Y_PATH=experiments/vae_mnist/latents_val/y.pt \
+KM_K_GRAPH=10 \
+KM_GRAPH_SYM=mutual \  # mutual|union
+KM_K_VALUES=32,64,128 \
+KM_INITS=kpp,random \
+KM_SEED=42 \
+python demos/kmedoids_geodesic_analysis.py
+```
+
+**Output Directory:** `demo_outputs/kmedoids_geodesic_{timestamp}/`
+
+**Generated Files:**
+- `metrics.csv` and `metrics.json` with: `K`, `init`, `qe_geo_finite`, `finite_fraction`, `purity`, `nmi`, `ari`, `perplexity`
+- `elbow.png` — QE vs K curves (per init)
+- `pca_clusters_euclidean_K{K}_{init}.png` — PCA of distance-to-medoids features with medoids highlighted (first configuration)
+- `code_usage_euclidean_K{K}_{init}.png` — code usage histogram with perplexity (first configuration)
+
 ## Running Demos
 
 **Prerequisites:**
@@ -84,6 +110,9 @@ python demos/vae_knn_analysis.py
 
 # Interactive exploration (synthetic data, no training needed)
 python demos/interactive_exploration.py
+
+# Geodesic k-medoids (post-hoc quantization on precomputed latents)
+python demos/kmedoids_geodesic_analysis.py
 ```
 
 **Dependencies:**
