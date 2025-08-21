@@ -37,3 +37,10 @@ check_completion "Riemannian graph effects analysis"
 
 echo "All experiments completed successfully!"
 echo "Results available in experiments/geo/"
+
+# Geodesic K-medoids analysis (post-hoc quantization study)
+echo "Running Geodesic K-medoids analysis..."
+python3 demos/kmedoids_geodesic_analysis.py
+check_completion "Geodesic K-medoids analysis"
+
+echo "Demo outputs available in demo_outputs/"

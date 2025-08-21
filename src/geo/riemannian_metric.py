@@ -1,4 +1,3 @@
-# src/geo/riemannian_metric.py
 """Riemannian metric for VAE latent space."""
 import torch
 
@@ -22,12 +21,7 @@ def _compute_jacobian_vector_product(decoder, z: torch.Tensor, direction: torch.
     return jacobian_vector_product
 
 @torch.no_grad()
-def edge_lengths_riemannian(
-    decoder,
-    z_start: torch.Tensor,
-    z_end: torch.Tensor,
-    batch_size: int = 512,
-) -> torch.Tensor:
+def edge_lengths_riemannian(decoder, z_start: torch.Tensor, z_end: torch.Tensor, batch_size: int = 512) -> torch.Tensor:
     """Calculate Riemannian edge lengths between latent points."""
     assert z_start.shape == z_end.shape, "Start and end points must have same shape"
     

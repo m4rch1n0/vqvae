@@ -34,6 +34,7 @@ Utility scripts for project setup, data management, and pipeline orchestration.
 # Run specific demos
 python demos/vae_knn_analysis.py
 python demos/interactive_exploration.py
+python demos/kmedoids_geodesic_analysis.py
 
 # Run specific experiments
 python experiments/geo/riemann_sanity_check.py

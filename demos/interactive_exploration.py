@@ -4,12 +4,8 @@ Interactive VAE k-NN Geodesic Visualization Demo
 Interactive exploration tool for k-NN graphs and geodesic distances in VAE latent spaces.
 Generates synthetic data and launches an interactive visualization.
 """
-import sys
 import numpy as np
-from pathlib import Path
 
-# Add project root to path
-sys.path.append(str(Path(__file__).parent.parent))
 from visualizations.interactive_knn_viz import create_interactive_demo
 
 
