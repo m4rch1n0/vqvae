@@ -25,7 +25,6 @@ def plot_geodesic_distances_vs_k(z, k_values, source_idx=0, output_path=None):
         axes = [axes]
     
     print(f"Source node: index={source_idx}, coordinates=({z[source_idx, 0]:.2f}, {z[source_idx, 1]:.2f})")
-    print("="*70)
     
     for i, k in enumerate(k_values):
         # Build graph and analyze connectivity
