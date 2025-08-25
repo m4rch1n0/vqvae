@@ -1,0 +1,233 @@
+"""Geodesic vs Euclidean codebook comparison."""
+import json
+import yaml
+from pathlib import Path
+from datetime import datetime
+
+import numpy as np
+import torch
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+
+from src.geo.kmeans_precomputed import fit_kmedoids_precomputed
+from src.geo.knn_graph import build_knn_graph, largest_connected_component
+from src.models.vae import VAE
+
+
+CONFIG_FILE = "configs/codebook_comparison/test2.yaml"  # Change to use different config
+
+# Quick config switch examples:
+# Standard:     CONFIG_FILE = "configs/codebook_comparison/test1.yaml"
+# Experimental: CONFIG_FILE = "configs/codebook_comparison/test2.yaml"
+
+
+def _load_latents(path):
+    obj = torch.load(path, map_location="cpu")
+    if isinstance(obj, dict) and "z" in obj:
+        z = obj["z"]
+    elif torch.is_tensor(obj):
+        z = obj
+    else:
+        raise ValueError("Expected dict with 'z' key or tensor")
+    return z.float()
+
+
+def _load_vae_model(checkpoint_path, device):
+    checkpoint = torch.load(checkpoint_path, map_location=device)
+    model = VAE(
+        in_channels=1,
+        enc_channels=[32,64, 128], 
+        dec_channels=[128, 64, 32],
+        latent_dim=16,
+        recon_loss="bce"
+    )
+    model.load_state_dict(checkpoint['model_state_dict'])
+    model.to(device)
+    model.eval()
+    return model
+
+
+def _build_euclidean_codebook(z, K, seed=42):
+    kmeans = KMeans(n_clusters=K, random_state=seed, n_init=10)
+    assign = kmeans.fit_predict(z)
+    centroids = kmeans.cluster_centers_
+    return centroids, assign
+
+
+def _build_geodesic_codebook(z, K, k_graph=10, seed=42, metric="euclidean", sym="mutual", mode="distance"):
+    W, _ = build_knn_graph(z, k=k_graph, metric=metric, mode=mode, sym=sym)
+    
+    mask_lcc = largest_connected_component(W)
+    if mask_lcc.sum() < W.shape[0]:
+        W = W[mask_lcc][:, mask_lcc]
+        z_lcc = z[mask_lcc]
+    else:
+        z_lcc = z
+        mask_lcc = np.ones(len(z), dtype=bool)
+    
+    medoids, assign_lcc, _ = fit_kmedoids_precomputed(W, K=K, init="kpp", seed=seed, chunk_size=1000)
+    
+    assign = np.full(len(z), fill_value=-1, dtype=np.int32)
+    assign[mask_lcc] = assign_lcc
+    
+    centroids = z_lcc[medoids]
+    return centroids, assign
+
+
+def _compute_reconstruction_quality(model, z_original, z_quantized, device):
+    model.eval()
+    with torch.no_grad():
+        z_orig_dev = z_original.to(device)
+        z_quant_dev = z_quantized.to(device)
+        
+        x_orig = torch.sigmoid(model.decoder(z_orig_dev))
+        x_quant = torch.sigmoid(model.decoder(z_quant_dev))
+        
+        mse = torch.nn.functional.mse_loss(x_quant, x_orig).item()
+    return mse
+
+
+def _compute_perplexity(assign, K):
+    valid_mask = assign >= 0
+    if not valid_mask.any():
+        return 0.0
+    
+    assign_valid = assign[valid_mask]
+    counts = np.bincount(assign_valid, minlength=K)
+    probs = counts / counts.sum()
+    nz = probs[probs > 0]
+    
+    entropy = -np.sum(nz * np.log(nz + 1e-12))
+    return float(np.exp(entropy))
+
+
+def _save_comparison_plot(metrics, out_dir):
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    
+    methods = ['Euclidean', 'Geodesic']
+    colors = ['#1f77b4', '#ff7f0e']
+    
+    # Reconstruction quality
+    recon_errors = [metrics['euclidean']['reconstruction_mse'], metrics['geodesic']['reconstruction_mse']]
+    axes[0].bar(methods, recon_errors, color=colors)
+    axes[0].set_ylabel('Reconstruction MSE')
+    axes[0].set_title('Reconstruction Quality')
+    
+    # Perplexity
+    perplexities = [metrics['euclidean']['perplexity'], metrics['geodesic']['perplexity']]
+    axes[1].bar(methods, perplexities, color=colors)
+    axes[1].set_ylabel('Perplexity')
+    axes[1].set_title('Code Usage Diversity')
+    
+    # Quantization error
+    qe_errors = [metrics['euclidean']['quantization_error'], metrics['geodesic']['quantization_error']]
+    axes[2].bar(methods, qe_errors, color=colors)
+    axes[2].set_ylabel('Quantization Error')
+    axes[2].set_title('Clustering Quality')
+    
+    plt.tight_layout()
+    plt.savefig(out_dir / "codebook_comparison.png", dpi=150, bbox_inches='tight')
+    plt.close()
+
+
+def main():
+    # Load configuration
+    config_path = Path(CONFIG_FILE)
+    with open(config_path, "r") as f:
+        config = yaml.safe_load(f)
+    
+    # Extract parameters
+    latents_path = Path(config["data"]["latents_path"])
+    checkpoint_path = Path(config["data"]["checkpoint_path"])
+    K = config["quantization"]["K"]
+    k_graph = config["graph"]["k"]
+    seed = config["quantization"]["seed"]
+    
+    # Setup output directory
+    if config["output"]["timestamp"]:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        out_dir = Path(f"{config['output']['base_dir']}_{timestamp}")
+    else:
+        out_dir = Path(config["output"]["base_dir"])
+    out_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Device selection
+    if config["experiment"]["device"] == "auto":
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    else:
+        device = torch.device(config["experiment"]["device"])
+    print(f"Using device: {device}")
+    
+    z = _load_latents(latents_path).numpy()
+    model = _load_vae_model(checkpoint_path, device)
+    N, D = z.shape
+    print(f"Loaded {N} latents (dim={D})")
+    
+    print(f"Building Euclidean codebook (K={K})...")
+    centroids_euc, assign_euc = _build_euclidean_codebook(z, K, seed)
+    
+    print(f"Building geodesic codebook (K={K}, k_graph={k_graph})...")
+    centroids_geo, assign_geo = _build_geodesic_codebook(
+        z, K, k_graph, seed, 
+        metric=config["graph"]["metric"], 
+        sym=config["graph"]["sym"], 
+        mode=config["graph"]["mode"]
+    )
+    
+    z_tensor = torch.from_numpy(z).float()
+    
+    z_quant_euc = torch.from_numpy(centroids_euc[assign_euc]).float()
+    
+    valid_geo = assign_geo >= 0
+    z_quant_geo = z_tensor.clone()
+    if valid_geo.any():
+        z_quant_geo[valid_geo] = torch.from_numpy(centroids_geo[assign_geo[valid_geo]]).float()
+    
+    recon_mse_euc = _compute_reconstruction_quality(model, z_tensor, z_quant_euc, device)
+    recon_mse_geo = _compute_reconstruction_quality(model, z_tensor[valid_geo], z_quant_geo[valid_geo], device)
+    
+    perp_euc = _compute_perplexity(assign_euc, K)
+    perp_geo = _compute_perplexity(assign_geo, K)
+    
+    qe_euc = np.mean(np.linalg.norm(z - z_quant_euc.numpy(), axis=1) ** 2)
+    qe_geo = np.mean(np.linalg.norm(z[valid_geo] - z_quant_geo[valid_geo].numpy(), axis=1) ** 2)
+    
+    metrics = {
+        'euclidean': {
+            'reconstruction_mse': float(recon_mse_euc),
+            'perplexity': float(perp_euc),
+            'quantization_error': float(qe_euc),
+            'valid_samples': int(N)
+        },
+        'geodesic': {
+            'reconstruction_mse': float(recon_mse_geo),
+            'perplexity': float(perp_geo),
+            'quantization_error': float(qe_geo),
+            'valid_samples': int(valid_geo.sum())
+        }
+    }
+    
+    # Save results based on configuration
+    if config["experiment"]["save_plots"]:
+        _save_comparison_plot(metrics, out_dir)
+    
+    if config["experiment"]["save_metrics"]:
+        with open(out_dir / "metrics.json", "w") as f:
+            json.dump(metrics, f, indent=2)
+    
+    # Save configuration for reproducibility
+    with open(out_dir / "config.yaml", "w") as f:
+        yaml.dump(config, f, default_flow_style=False, indent=2)
+    
+    print(f"\nComparison Results (K={K}):")
+    print(f"Euclidean  - MSE: {recon_mse_euc:.6f}, Perplexity: {perp_euc:.2f}")
+    print(f"Geodesic   - MSE: {recon_mse_geo:.6f}, Perplexity: {perp_geo:.2f}")
+    print(f"Results saved to: {out_dir}")
+    
+    return out_dir
+
+
+if __name__ == "__main__":
+    main()

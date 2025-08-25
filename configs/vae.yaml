@@ -1,6 +1,5 @@
-# Architettura VAE (immagini 1x28x28)
+# VAE architecture (images 1x28x28)
 latent_dim: 16
 enc_channels: [32, 64, 128]
 dec_channels: [128, 64, 32]
-# Recon loss: bce|mse
 recon_loss: bce

@@ -26,6 +26,7 @@ vqvae/
 ├── demos/                  # Interactive examples
 │   ├── vae_knn_analysis.py           # Main latent space analysis demo
 │   ├── interactive_exploration.py    # Interactive k-NN visualization
+│   ├── codebook_comparison.py        # Geodesic vs Euclidean quantization comparison
 │   └── kmedoids_geodesic_analysis.py # Geodesic K-medoids (post-hoc quantization)
 ├── experiments/           # Research experiments  
 │   ├── geo/              # Riemannian geometry experiments
@@ -58,6 +59,7 @@ Run demos:
 ```bash
 python demos/vae_knn_analysis.py
 python demos/interactive_exploration.py
+python demos/codebook_comparison.py
 python demos/kmedoids_geodesic_analysis.py
 ```
 
@@ -80,11 +82,20 @@ Geodesic Shortest Paths (`src/geo/geo_shortest_paths.py`)
 - Dijkstra's algorithm for multi-source shortest paths
 - Efficient computation on sparse graphs
 
+K-medoids Clustering (`src/geo/kmeans_precomputed.py`)
+- Geodesic K-medoids using precomputed distance matrices
+- Chunked computation for memory-efficient large graph processing
+
+Codebook Builder (`src/training/build_codebook.py`)
+- Post-hoc discrete codebook construction via geodesic clustering
+- Saves quantized representations and cluster assignments
+
 ## Research Questions
 
 - Geometry: How does the VAE latent manifold structure affect quantization quality?
 - Connectivity: Do Riemannian distances preserve better neighborhood relationships?
 - Reconstruction: Does geodesic clustering improve reconstruction vs. Euclidean methods?
+- Comparative Analysis: When do geodesic methods outperform standard Euclidean quantization?
 - Generative Quality: How does post-hoc quantization compare to end-to-end VQ-VAE training?
 
 ## Configuration
@@ -98,7 +109,7 @@ Main configuration files in `configs/`:
 
 Experimental outputs saved to:
 - `experiments/geo/` - Riemannian analysis results
-- `demo_outputs/` - Demo visualizations  
+- `demo_outputs/` - Demo visualizations and quantization comparisons
 - `experiments/vae_mnist/` - Trained models and latent representations
 
 ## Dependencies

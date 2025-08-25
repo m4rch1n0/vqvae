@@ -1,4 +1,7 @@
-"""Riemannian metric for VAE latent space."""
+"""Riemannian metric for VAE latent space.
+
+Full documentation: see docs/geo/riemannian_metric.md
+"""
 import torch
 
 @torch.no_grad()

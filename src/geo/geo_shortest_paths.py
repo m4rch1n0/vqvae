@@ -1,7 +1,7 @@
 """
 Geodesic shortest paths using SciPy's Dijkstra.
 
-Full documentation: see docs/geo_shortest_paths.md
+Full documentation: see docs/geo/geo_shortest_paths.md
 """
 from typing import Tuple
 import numpy as np

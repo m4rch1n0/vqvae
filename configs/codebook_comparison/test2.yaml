@@ -1,0 +1,37 @@
+# Experimental configuration for codebook comparison demo
+# Optimized parameters for better geodesic performance
+
+# Data paths
+data:
+  latents_path: "experiments/vae_mnist/latents_val/z.pt"
+  checkpoint_path: "experiments/vae_mnist/checkpoints/best.pt"
+
+# Quantization parameters - larger codebook for complex geometry
+quantization:
+  K: 128                   # Increased from 64 for finer quantization
+  seed: 42                 # Random seed for reproducibility
+  
+# Graph construction - higher connectivity for better manifold capture
+graph:
+  k: 20                    # Increased from 10 for denser connectivity
+  metric: "euclidean"      # Distance metric for k-NN
+  sym: "union"             # Changed from "mutual" for broader connectivity
+  mode: "distance"         # Edge weight mode
+
+# Experimental settings
+experiment:
+  device: "auto"           # Device selection
+  save_plots: true         # Generate comparison visualizations
+  save_metrics: true       # Save detailed metrics to JSON
+  
+# Output configuration
+output:
+  base_dir: "demo_outputs/codebook_comparison_experimental"
+  timestamp: true          # Add timestamp to output directory
+  save_codebook: false     # Save individual codebooks (large files)
+
+# Additional experimental parameters
+experimental:
+  multiple_seeds: [42, 123, 456, 789, 999]  # For statistical significance
+  k_values: [15, 20, 25, 30]                # Test different connectivity levels
+  K_values: [64, 128, 256]                  # Test different codebook sizes

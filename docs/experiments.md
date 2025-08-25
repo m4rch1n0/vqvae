@@ -94,6 +94,71 @@ NUM_SOURCES = 8
 - `graph_effects.npz` - Complete numerical results
 - Console output with detailed metrics
 
+## codebook_comparison
+
+Direct comparison of geodesic vs Euclidean quantization methods for post-hoc VQ-VAE codebook construction.
+
+**Signature:** `python demos/codebook_comparison.py`
+
+**Objective:** Evaluate reconstruction quality and code usage efficiency when quantizing VAE latents using geodesic K-medoids vs standard Euclidean K-means.
+
+**Configuration:**
+```python
+K = 64              # Number of codebook entries
+k_graph = 10        # k-NN graph connectivity
+seed = 42           # Reproducibility
+```
+
+**Methodology:**
+1. Load pre-trained VAE model and latent representations (N=10000, dim=16)
+2. Build Euclidean codebook: `sklearn.KMeans(K=64)` 
+3. Build geodesic codebook: k-NN graph + `fit_kmedoids_precomputed(K=64)`
+4. Quantize latents using both codebooks
+5. Compare VAE reconstruction quality via decoder MSE
+
+**Key Metrics:**
+- **Reconstruction MSE**: Quality of image reconstruction from quantized latents
+- **Perplexity**: Code usage balance (`exp(entropy)`)
+- **Quantization Error**: Distance to assigned centroids/medoids
+
+**Current Results (MNIST):**
+```
+Euclidean  - Reconstruction MSE: 0.044484, Perplexity: 62.60
+Geodesic   - Reconstruction MSE: 0.071040, Perplexity: 43.21
+```
+
+**Interpretation:** Counter-intuitive finding that Euclidean quantization outperforms geodesic on MNIST. Suggests manifold complexity may not justify computational overhead for simple datasets.
+
+**Output Files:**
+- `codebook_comparison.png` - 3-panel comparison visualization
+- `metrics.json` - Detailed numerical results
+- `config.yaml` - Configuration used for the experiment (reproducibility)
+
+**Recommended Configurations for Better Geodesic Performance:**
+
+**Default Configuration:** `configs/codebook_comparison.yaml`
+- Standard parameters for baseline comparison
+
+**Experimental Configuration:** `configs/codebook_comparison_experimental.yaml`
+- Higher connectivity: `k=20` (vs default `k=10`)
+- Larger codebook: `K=128` (vs default `K=64`)  
+- Broader connectivity: `sym="union"` (vs default `sym="mutual"`)
+
+**Custom Parameter Testing:**
+```python
+# Test different connectivity levels
+k_graph = [15, 20, 25, 30]
+
+# Test different codebook sizes
+K = [64, 128, 256, 512]
+
+# Test different graph symmetries  
+sym = ["mutual", "union"]
+
+# Multiple seeds for statistical significance
+seeds = [42, 123, 456, 789, 999]
+```
+
 ## Experimental Pipeline
 
 **Complete Workflow:**
@@ -113,7 +178,10 @@ python experiments/geo/riemann_sanity_check.py
 # 3. Graph effects analysis  
 python experiments/geo/run_riemann_experiments.py
 
-# 4. Geodesic k-medoids analysis (post-hoc quantization)
+# 4. Codebook comparison (geodesic vs Euclidean quantization)
+python demos/codebook_comparison.py
+
+# 5. Geodesic k-medoids analysis (post-hoc quantization)
 python demos/kmedoids_geodesic_analysis.py
 ```
 
