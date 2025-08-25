@@ -1,4 +1,4 @@
-# Configuration for codebook comparison demo
+# Standard configuration for codebook comparison demo
 # Geodesic vs Euclidean quantization comparison
 
 # Data paths
@@ -8,24 +8,24 @@ data:
 
 # Quantization parameters
 quantization:
-  K: 64                    # Number of codebook entries
-  seed: 42                 # Random seed for reproducibility
+  K: 64                    
+  seed: 42                 
   
 # Graph construction for geodesic method
 graph:
-  k: 10                    # k-NN connectivity parameter
-  metric: "euclidean"      # Distance metric for k-NN (euclidean, cosine)
-  sym: "mutual"            # Graph symmetry (mutual, union)
-  mode: "distance"         # Edge weight mode
+  k: 10                    
+  metric: "euclidean"      
+  sym: "mutual"            
+  mode: "distance"         
 
 # Experimental settings
 experiment:
-  device: "auto"           # Device selection (auto, cuda, cpu)
-  save_plots: true         # Generate comparison visualizations
-  save_metrics: true       # Save detailed metrics to JSON
+  device: "auto"           
+  save_plots: true         
+  save_metrics: true       
   
 # Output configuration
 output:
   base_dir: "demo_outputs/codebook_comparison_test1"
-  timestamp: true          # Add timestamp to output directory
-  save_codebook: false     # Save individual codebooks (large files)
+  timestamp: true          
+  save_codebook: false     

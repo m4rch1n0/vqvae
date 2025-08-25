@@ -24,7 +24,7 @@ from sklearn.metrics import normalized_mutual_info_score, adjusted_rand_score
 
 from src.geo.knn_graph import build_knn_graph
 from src.geo.geo_shortest_paths import dijkstra_multi_source
-from src.geo.kmeans_precoputed import fit_kmedoids_graph
+from src.geo.kmeans_precomputed import fit_kmedoids_graph
 
 
 def _load_latents(latent_path: Path) -> np.ndarray:

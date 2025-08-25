@@ -1,0 +1,19 @@
+data:
+  checkpoint_path: experiments/vae_mnist/checkpoints/best.pt
+  latents_path: experiments/vae_mnist/latents_val/z.pt
+experiment:
+  device: auto
+  save_metrics: true
+  save_plots: true
+graph:
+  k: 10
+  metric: cosine
+  mode: distance
+  sym: union
+output:
+  base_dir: demo_outputs/codebook_comparison_optimized
+  save_codebook: false
+  timestamp: true
+quantization:
+  K: 384
+  seed: 42

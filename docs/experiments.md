@@ -102,12 +102,7 @@ Direct comparison of geodesic vs Euclidean quantization methods for post-hoc VQ-
 
 **Objective:** Evaluate reconstruction quality and code usage efficiency when quantizing VAE latents using geodesic K-medoids vs standard Euclidean K-means.
 
-**Configuration:**
-```python
-K = 64              # Number of codebook entries
-k_graph = 10        # k-NN graph connectivity
-seed = 42           # Reproducibility
-```
+**Configuration:** Configuration files can be found in configs/codebook_comparison
 
 **Methodology:**
 1. Load pre-trained VAE model and latent representations (N=10000, dim=16)
@@ -136,28 +131,14 @@ Geodesic   - Reconstruction MSE: 0.071040, Perplexity: 43.21
 
 **Recommended Configurations for Better Geodesic Performance:**
 
-**Default Configuration:** `configs/codebook_comparison.yaml`
+**Default Configuration:** `configs/test1.yaml`
 - Standard parameters for baseline comparison
 
-**Experimental Configuration:** `configs/codebook_comparison_experimental.yaml`
+**Experimental Configuration:** `configs/test2.yaml`
 - Higher connectivity: `k=20` (vs default `k=10`)
 - Larger codebook: `K=128` (vs default `K=64`)  
 - Broader connectivity: `sym="union"` (vs default `sym="mutual"`)
 
-**Custom Parameter Testing:**
-```python
-# Test different connectivity levels
-k_graph = [15, 20, 25, 30]
-
-# Test different codebook sizes
-K = [64, 128, 256, 512]
-
-# Test different graph symmetries  
-sym = ["mutual", "union"]
-
-# Multiple seeds for statistical significance
-seeds = [42, 123, 456, 789, 999]
-```
 
 ## Experimental Pipeline
 

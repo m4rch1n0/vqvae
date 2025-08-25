@@ -1,8 +1,11 @@
 """Geodesic vs Euclidean codebook comparison."""
 import json
 import yaml
+import sys
+import argparse
 from pathlib import Path
 from datetime import datetime
+from typing import Tuple, Dict
 
 import numpy as np
 import torch
@@ -16,14 +19,28 @@ from src.geo.knn_graph import build_knn_graph, largest_connected_component
 from src.models.vae import VAE
 
 
-CONFIG_FILE = "configs/codebook_comparison/test2.yaml"  # Change to use different config
+def parse_args():
+    """Parse command line arguments for configuration selection."""
+    parser = argparse.ArgumentParser(description="Geodesic vs Euclidean codebook comparison")
+    parser.add_argument(
+        "--config", 
+        type=str, 
+        default="test2",
+        choices=["test1", "test2", "test3", "test4", "test5"],
+        help="Configuration to use (default: test2)"
+    )
+    return parser.parse_args()
 
-# Quick config switch examples:
-# Standard:     CONFIG_FILE = "configs/codebook_comparison/test1.yaml"
-# Experimental: CONFIG_FILE = "configs/codebook_comparison/test2.yaml"
+
+# Available configurations:
+# Standard:           --config test1
+# Experimental:       --config test2  
+# High Resolution:    --config test3
+# Memory Efficient:   --config test4
+# Multi-Metric:       --config test5
 
 
-def _load_latents(path):
+def _load_latents(path: Path) -> np.ndarray:
     obj = torch.load(path, map_location="cpu")
     if isinstance(obj, dict) and "z" in obj:
         z = obj["z"]
@@ -34,7 +51,7 @@ def _load_latents(path):
     return z.float()
 
 
-def _load_vae_model(checkpoint_path, device):
+def _load_vae_model(checkpoint_path: Path, device: torch.device) -> VAE:
     checkpoint = torch.load(checkpoint_path, map_location=device)
     model = VAE(
         in_channels=1,
@@ -49,14 +66,14 @@ def _load_vae_model(checkpoint_path, device):
     return model
 
 
-def _build_euclidean_codebook(z, K, seed=42):
+def _build_euclidean_codebook(z: np.ndarray, K: int, seed: int = 42) -> Tuple[np.ndarray, np.ndarray]:
     kmeans = KMeans(n_clusters=K, random_state=seed, n_init=10)
     assign = kmeans.fit_predict(z)
     centroids = kmeans.cluster_centers_
     return centroids, assign
 
 
-def _build_geodesic_codebook(z, K, k_graph=10, seed=42, metric="euclidean", sym="mutual", mode="distance"):
+def _build_geodesic_codebook(z: np.ndarray, K: int, k_graph: int = 10, seed: int = 42, metric: str = "euclidean", sym: str = "mutual", mode: str = "distance") -> Tuple[np.ndarray, np.ndarray]:
     W, _ = build_knn_graph(z, k=k_graph, metric=metric, mode=mode, sym=sym)
     
     mask_lcc = largest_connected_component(W)
@@ -76,7 +93,7 @@ def _build_geodesic_codebook(z, K, k_graph=10, seed=42, metric="euclidean", sym=
     return centroids, assign
 
 
-def _compute_reconstruction_quality(model, z_original, z_quantized, device):
+def _compute_reconstruction_quality(model: VAE, z_original: torch.Tensor, z_quantized: torch.Tensor, device: torch.device) -> float:
     model.eval()
     with torch.no_grad():
         z_orig_dev = z_original.to(device)
@@ -89,7 +106,7 @@ def _compute_reconstruction_quality(model, z_original, z_quantized, device):
     return mse
 
 
-def _compute_perplexity(assign, K):
+def _compute_perplexity(assign: np.ndarray, K: int) -> float:
     valid_mask = assign >= 0
     if not valid_mask.any():
         return 0.0
@@ -103,7 +120,7 @@ def _compute_perplexity(assign, K):
     return float(np.exp(entropy))
 
 
-def _save_comparison_plot(metrics, out_dir):
+def _save_comparison_plot(metrics: Dict[str, Dict[str, float]], out_dir: Path) -> None:
     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
     
     methods = ['Euclidean', 'Geodesic']
@@ -113,19 +130,19 @@ def _save_comparison_plot(metrics, out_dir):
     recon_errors = [metrics['euclidean']['reconstruction_mse'], metrics['geodesic']['reconstruction_mse']]
     axes[0].bar(methods, recon_errors, color=colors)
     axes[0].set_ylabel('Reconstruction MSE')
-    axes[0].set_title('Reconstruction Quality')
+    axes[0].set_title('Reconstruction Quality\n(Lower is Better)')
     
     # Perplexity
     perplexities = [metrics['euclidean']['perplexity'], metrics['geodesic']['perplexity']]
     axes[1].bar(methods, perplexities, color=colors)
     axes[1].set_ylabel('Perplexity')
-    axes[1].set_title('Code Usage Diversity')
+    axes[1].set_title('Code Usage Diversity\n(Higher is Better)')
     
     # Quantization error
     qe_errors = [metrics['euclidean']['quantization_error'], metrics['geodesic']['quantization_error']]
     axes[2].bar(methods, qe_errors, color=colors)
     axes[2].set_ylabel('Quantization Error')
-    axes[2].set_title('Clustering Quality')
+    axes[2].set_title('Clustering Quality\n(Lower is Better)')
     
     plt.tight_layout()
     plt.savefig(out_dir / "codebook_comparison.png", dpi=150, bbox_inches='tight')
@@ -133,8 +150,11 @@ def _save_comparison_plot(metrics, out_dir):
 
 
 def main():
+    # Parse command line arguments
+    args = parse_args()
+    
     # Load configuration
-    config_path = Path(CONFIG_FILE)
+    config_path = Path(f"configs/codebook_comparison/{args.config}.yaml")
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
     

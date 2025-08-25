@@ -19,7 +19,7 @@ check_completion() {
 # Train VAE model (if not exists)
 if [ ! -f "experiments/vae_mnist/checkpoints/best.pt" ]; then
     echo "Training VAE model..."
-    ./scripts/train_vae.sh
+    ./train_vae.sh
     check_completion "VAE training"
 else
     echo "VAE model already trained, skipping..."
@@ -42,5 +42,10 @@ echo "Results available in experiments/geo/"
 echo "Running Geodesic K-medoids analysis..."
 python3 demos/kmedoids_geodesic_analysis.py
 check_completion "Geodesic K-medoids analysis"
+
+# Codebook comparison demo (Euclidean vs Geodesic quantization)
+echo "Running Codebook Comparison Demo..."
+python3 demos/codebook_comparison.py
+check_completion "Codebook comparison demo"
 
 echo "Demo outputs available in demo_outputs/"

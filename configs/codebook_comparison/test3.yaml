@@ -1,5 +1,5 @@
-# Experimental configuration for codebook comparison demo
-# Optimized for geodesic performance
+# High Resolution configuration for codebook comparison demo
+# Large codebook with high connectivity for maximum quality
 
 # Data paths
 data:
@@ -11,11 +11,11 @@ quantization:
   K: 256                  
   seed: 42                 
   
-# Graph construction 
+# Graph construction
 graph:
-  k: 8                    
+  k: 30                    
   metric: "cosine"         
-  sym: "mutual"            
+  sym: "union"            
   mode: "distance"         
 
 # Experimental settings
@@ -26,6 +26,6 @@ experiment:
   
 # Output configuration
 output:
-  base_dir: "demo_outputs/codebook_comparison_optimized"
+  base_dir: "demo_outputs/codebook_comparison_high_res"
   timestamp: true          
   save_codebook: false     

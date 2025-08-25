@@ -1,5 +1,5 @@
-# Experimental configuration for codebook comparison demo
-# Optimized for geodesic performance
+# Memory Efficient configuration for codebook comparison demo
+# Small codebook with low connectivity for fast testing
 
 # Data paths
 data:
@@ -8,14 +8,14 @@ data:
 
 # Quantization parameters
 quantization:
-  K: 256                  
+  K: 32                    
   seed: 42                 
   
-# Graph construction 
+# Graph construction
 graph:
   k: 8                    
-  metric: "cosine"         
-  sym: "mutual"            
+  metric: "euclidean"     
+  sym: "mutual"           
   mode: "distance"         
 
 # Experimental settings
@@ -26,6 +26,6 @@ experiment:
   
 # Output configuration
 output:
-  base_dir: "demo_outputs/codebook_comparison_optimized"
+  base_dir: "demo_outputs/codebook_comparison_memory_efficient"
   timestamp: true          
   save_codebook: false     
