@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
+
+# runs from repo root
+cd "$(dirname "$0")/.."
+
 export PYTHONPATH=./
-python3 src/training/train_vae.py \
-  seed=42 device=auto max_epochs=20 lr=1e-3\
-  ckpt_dir=./experiments/vae_mnist/checkpoints \
-  out_dir=./experiments/vae_mnist
+
+# place outputs under experiments/vae_<dataset>/ and checkpoints accordingly.
+# Read all hyperparameters from configs/train.yaml; allow optional CLI overrides via "$@".
+python3 src/training/train_vae.py "$@"

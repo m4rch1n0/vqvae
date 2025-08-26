@@ -16,14 +16,10 @@ check_completion() {
     echo "Completed: $1"
 }
 
-# Train VAE model (if not exists)
-if [ ! -f "experiments/vae_mnist/checkpoints/best.pt" ]; then
-    echo "Training VAE model..."
-    ./train_vae.sh
-    check_completion "VAE training"
-else
-    echo "VAE model already trained, skipping..."
-fi
+# Train VAE model (always respects dataset from configs/data.yaml)
+echo "Training VAE model..."
+./train_vae.sh
+check_completion "VAE training"
 
 # Run Riemannian sanity checks
 echo "Running Riemannian sanity checks..."
