@@ -24,7 +24,7 @@ env/
 *.pt
 *.ckpt
 *.log
-instruction.txt
+#instruction.txt
 
 # Local datasets and archives
 /scripts/data/

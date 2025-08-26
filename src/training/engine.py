@@ -19,7 +19,7 @@ class TrainingEngine:
         self.optimizer = optimizer
         self.device = device
 
-    def _run_epoch(self, loader: DataLoader, train: bool, epoch: int, num_epochs: int, beta: float) -> Tuple[float, float, float]:
+    def _run_epoch(self, loader: DataLoader, train: bool, epoch: int, num_epochs: int, beta: float, grad_clip_max_norm: float = 0.0) -> Tuple[float, float, float]:
         """Run a single epoch over a DataLoader and return averaged metrics."""
         self.model.train() if train else self.model.eval()
         total, total_recon, total_kl = 0.0, 0.0, 0.0
@@ -33,6 +33,8 @@ class TrainingEngine:
                 loss, recon, kl = self.model.loss(x, x_logits, mu, logvar, beta=beta)
                 self.optimizer.zero_grad(set_to_none=True)
                 loss.backward()
+                if grad_clip_max_norm and grad_clip_max_norm > 0:
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=float(grad_clip_max_norm))
                 self.optimizer.step()
             else:
                 with torch.no_grad():
@@ -63,6 +65,8 @@ class TrainingEngine:
         save_latents_flag: bool,
         kl_anneal_epochs: int = 0,
         beta: float = 1.0,
+        grad_clip_max_norm: float = 0.0,
+        scheduler=None,
     ) -> None:
         """Train for num_epochs with early stopping"""
         best_val = float('inf')
@@ -80,8 +84,8 @@ class TrainingEngine:
             current_beta = beta * min(1.0, epoch / kl_anneal_epochs) if kl_anneal_epochs > 0 else beta
 
             print(f"Epoch {epoch}/{num_epochs} (beta={current_beta:.4f})")
-            train_loss, train_recon, train_kl = self._run_epoch(train_loader, train=True, epoch=epoch, num_epochs=num_epochs, beta=current_beta)
-            val_loss, val_recon, val_kl = self._run_epoch(val_loader, train=False, epoch=epoch, num_epochs=num_epochs, beta=current_beta)
+            train_loss, train_recon, train_kl = self._run_epoch(train_loader, train=True, epoch=epoch, num_epochs=num_epochs, beta=current_beta, grad_clip_max_norm=grad_clip_max_norm)
+            val_loss, val_recon, val_kl = self._run_epoch(val_loader, train=False, epoch=epoch, num_epochs=num_epochs, beta=current_beta, grad_clip_max_norm=0.0)
 
             # Infer number of pixels once (C*H*W) for per-pixel metrics
             if num_pixels is None:
@@ -118,6 +122,10 @@ class TrainingEngine:
                     print(f"Early stopping at epoch {epoch}")
                     break
 
+            # Step LR scheduler (per-epoch) if provided
+            if scheduler is not None:
+                scheduler.step()
+
         if save_latents_flag and output_dir is not None:
             save_latents(self.model, train_loader, self.device, output_dir / 'latents_train')
             save_latents(self.model, val_loader, self.device, output_dir / 'latents_val')
@@ -137,12 +145,49 @@ class TrainingEngine:
         self.model.eval()
         import torchvision.utils as vutils
         import torchvision
+        from torchvision import transforms as T
         x, _ = next(iter(val_loader))
         x = x.to(self.device)
         with torch.no_grad():
             x_logits, _, _, _ = self.model(x)
-            x_rec = torch.sigmoid(x_logits)
-        grid = vutils.make_grid(torch.cat([x[:8], x_rec[:8]], dim=0), nrow=8)
+
+            # Decide how to map logits to image space based on loss settings
+            if getattr(self.model, 'recon_loss', 'mse') == 'bce' or getattr(self.model, 'mse_use_sigmoid', True):
+                x_rec = torch.sigmoid(x_logits)
+            else:
+                x_rec = x_logits
+
+        # Attempt to detect Normalize(mean, std) in dataset transform and invert it for visualization
+        def _find_normalize(t):
+            if t is None:
+                return None
+            if isinstance(t, T.Normalize):
+                return t
+            # torchvison Compose-style container
+            sub = getattr(t, 'transforms', None)
+            if isinstance(sub, (list, tuple)):
+                for s in sub:
+                    n = _find_normalize(s)
+                    if n is not None:
+                        return n
+            # Fallback: nested attr named 'transform'
+            nested = getattr(t, 'transform', None)
+            if nested is not None:
+                return _find_normalize(nested)
+            return None
+
+        norm = _find_normalize(getattr(val_loader.dataset, 'transform', None))
+        def _unnormalize(img_batch, normalize_module):
+            if normalize_module is None:
+                return img_batch
+            mean = torch.as_tensor(normalize_module.mean, device=img_batch.device).view(1, -1, 1, 1)
+            std = torch.as_tensor(normalize_module.std, device=img_batch.device).view(1, -1, 1, 1)
+            return img_batch * std + mean
+
+        x_disp = _unnormalize(x, norm).clamp(0, 1)
+        x_rec_disp = _unnormalize(x_rec, norm).clamp(0, 1)
+
+        grid = vutils.make_grid(torch.cat([x_disp[:8], x_rec_disp[:8]], dim=0), nrow=8)
         img_path = output_dir / 'recon_grid.png'
         torchvision.utils.save_image(grid, img_path)
         if logger is not None:

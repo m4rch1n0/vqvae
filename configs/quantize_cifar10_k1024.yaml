@@ -1,0 +1,21 @@
+# Config for build codebook geodesic (CIFAR-10) with K=1024
+data:
+  latents_path: experiments/vae_cifar10/latents_train/z.pt
+
+out:
+  dir: experiments/geo/codebook_cifar10_k1024_kNN30
+
+graph:
+  k: 30
+  metric: euclidean
+  sym: union
+  mode: distance
+
+quantize:
+  K: 1024
+  init: kpp
+  seed: 42
+
+system:
+  device: cpu
+

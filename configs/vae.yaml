@@ -6,3 +6,6 @@ enc_channels: [64, 128, 256]
 dec_channels: [256, 128, 64]
 recon_loss: mse
 beta: 1.0
+norm_type: batch # one of [none, batch, group]
+# When using MSE with normalized inputs (mean/std), it's better to compare logits directly
+mse_use_sigmoid: false
