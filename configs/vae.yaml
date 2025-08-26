@@ -5,4 +5,4 @@ latent_dim: 128
 enc_channels: [64, 128, 256]
 dec_channels: [256, 128, 64]
 recon_loss: mse
-beta: 0.1
+beta: 1.0

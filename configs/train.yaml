@@ -11,4 +11,4 @@ out_dir: ./experiments/vae
 save_latents: true
 mlflow_tracking_uri: ./experiments/mlruns
 experiment_name: VAE_CIFAR10
-run_name: vae_latent128_beta0.1_anneal50
+run_name: vae_latent128_beta1.0_anneal50

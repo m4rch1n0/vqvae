@@ -28,13 +28,16 @@ class TrainingEngine:
         pbar = tqdm(loader, desc=f"{desc} [{epoch}/{num_epochs}]")
         for x, _ in pbar:
             x = x.to(self.device)
-            x_logits, mu, logvar, _ = self.model(x)
-            loss, recon, kl = self.model.loss(x, x_logits, mu, logvar, beta=beta)
-
             if train:
+                x_logits, mu, logvar, _ = self.model(x)
+                loss, recon, kl = self.model.loss(x, x_logits, mu, logvar, beta=beta)
                 self.optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 self.optimizer.step()
+            else:
+                with torch.no_grad():
+                    x_logits, mu, logvar, _ = self.model(x)
+                    loss, recon, kl = self.model.loss(x, x_logits, mu, logvar, beta=beta)
 
             total += float(loss.item())
             total_recon += float(recon.item())
