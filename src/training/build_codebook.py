@@ -20,14 +20,25 @@ def _load_latents(path: Path) -> torch.Tensor:
     elif torch.is_tensor(obj):
         z = obj
     else:
-        raise ValueError(f"Expected dict with 'z' key or tensor")
+        raise ValueError("Expected dict with 'z' key or tensor")
     
     return z.float()
 
 
 def build_and_save(config: Dict[str, Any]) -> Path:
     """Build geodesic codebook and save artifacts."""
-    z_path = Path(config["data"]["latents_path"])
+    # Allow dataset-based fallback if latents_path missing/unset
+    z_path_cfg = config["data"].get("latents_path") if isinstance(config.get("data"), dict) else None
+    if z_path_cfg:
+        z_path = Path(z_path_cfg)
+    else:
+        ds = str(config.get("data", {}).get("dataset", "mnist")).strip().lower()
+        base = {
+            "mnist": "experiments/vae_mnist/latents_train/z.pt",
+            "fashion": "experiments/vae_fashion/latents_train/z.pt",
+            "cifar10": "experiments/vae_cifar10/latents_train/z.pt",
+        }.get(ds, "experiments/vae_mnist/latents_train/z.pt")
+        z_path = Path(base)
     out_dir = Path(config["out"]["dir"])
     out_dir.mkdir(parents=True, exist_ok=True)
 

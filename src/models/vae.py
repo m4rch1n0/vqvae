@@ -30,20 +30,20 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, out_channels: int = 1, channels=(128, 64, 32), latent_dim: int = 16):
+    def __init__(self, out_channels: int = 1, channels=(128, 64, 32), latent_dim: int = 16, output_image_size: int = 28):
         super().__init__()
         self.fc = nn.Linear(latent_dim, channels[0] * 4 * 4)
-        # 4 -> 7
+        # First upsampling step: 4 -> 7 (MNIST 28) or 8 (CIFAR10 32)
+        out_pad = 1 if int(output_image_size) == 32 else 0
         self.deconv1 = nn.Sequential(
-            nn.ConvTranspose2d(channels[0], channels[1], kernel_size=3, stride=2, padding=1, output_padding=0),
+            nn.ConvTranspose2d(channels[0], channels[1], kernel_size=3, stride=2, padding=1, output_padding=out_pad),
             nn.ReLU(inplace=True),
         )
-        # 7 -> 14
+        # Next steps double spatial dims
         self.deconv2 = nn.Sequential(
             nn.ConvTranspose2d(channels[1], channels[2], kernel_size=4, stride=2, padding=1),
             nn.ReLU(inplace=True),
         )
-        # 14 -> 28
         self.out = nn.ConvTranspose2d(channels[2], out_channels, kernel_size=4, stride=2, padding=1)
 
     def forward(self, z: torch.Tensor) -> torch.Tensor:
@@ -56,10 +56,10 @@ class Decoder(nn.Module):
 
 
 class VAE(nn.Module):
-    def __init__(self, in_channels=1, enc_channels=(32,64,128), dec_channels=(128,64,32), latent_dim=16, recon_loss="bce"):
+    def __init__(self, in_channels=1, enc_channels=(32,64,128), dec_channels=(128,64,32), latent_dim=16, recon_loss="bce", output_image_size: int = 28):
         super().__init__()
         self.encoder = Encoder(in_channels, enc_channels, latent_dim)
-        self.decoder = Decoder(in_channels, dec_channels, latent_dim)
+        self.decoder = Decoder(in_channels, dec_channels, latent_dim, output_image_size=output_image_size)
         assert recon_loss in {"bce", "mse"}  # must assure that the loss is either binary cross entropy or mean squared error
         self.recon_loss = recon_loss
 
@@ -75,8 +75,8 @@ class VAE(nn.Module):
         x_logits = self.decoder(z)
         return x_logits, mu, logvar, z
 
-    def loss(self, x: torch.Tensor, x_logits: torch.Tensor, mu: torch.Tensor, logvar: torch.Tensor):
-        """Compute ELBO = recon + KL.
+    def loss(self, x: torch.Tensor, x_logits: torch.Tensor, mu: torch.Tensor, logvar: torch.Tensor, beta: float = 1.0):
+        """Compute ELBO = recon + beta * KL.
 
         If recon_loss == "bce", use numerically-stable BCE-with-logits.
         If recon_loss == "mse", apply sigmoid on logits and compute MSE.
@@ -87,5 +87,5 @@ class VAE(nn.Module):
             recon = F.mse_loss(torch.sigmoid(x_logits), x, reduction='sum') / x.size(0)
         # KL between diagonal Gaussians
         kl = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp()) / x.size(0)
-        elbo = recon + kl
+        elbo = recon + beta * kl
         return elbo, recon, kl

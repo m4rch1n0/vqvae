@@ -24,7 +24,7 @@ from hydra.utils import to_absolute_path
 from sklearn.decomposition import PCA
 
 
-from src.data.mnist import get_mnist_loaders
+from src.data import get_data_loaders
 from src.models.vae import VAE
 from src.utils.system import set_seed, get_device
 from src.training.engine import TrainingEngine
@@ -56,17 +56,19 @@ def setup_model_and_data(config):
     set_seed(config['seed'])
     device = get_device(config['device'])
     
-    data_cfg = OmegaConf.load('configs/mnist/data.yaml')
-    vae_cfg = OmegaConf.load('configs/mnist/vae.yaml')
+    # Load root-level configs only
+    data_cfg = OmegaConf.load('configs/data.yaml')
+    vae_cfg = OmegaConf.load('configs/vae.yaml')
     
     # Data
-    train_loader, val_loader = get_mnist_loaders(
+    train_loader, val_loader = get_data_loaders(
+        name=str(getattr(data_cfg, 'name', 'MNIST')),
         root=to_absolute_path(data_cfg.root),
         batch_size=data_cfg.batch_size,
         num_workers=0,
         pin_memory=False,
         persistent_workers=False,
-        augment=data_cfg.augment,
+        augment=bool(getattr(data_cfg, 'augment', False)),
     )
     
     # Model

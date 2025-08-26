@@ -1,5 +1,8 @@
-# VAE architecture (images 1x28x28)
-latent_dim: 16
-enc_channels: [32, 64, 128]
-dec_channels: [128, 64, 32]
-recon_loss: bce
+# VAE architecture
+in_channels: 3 # 3 for CIFAR10
+output_image_size: 32 # 28 for MNIST, 32 for CIFAR10
+latent_dim: 128
+enc_channels: [64, 128, 256]
+dec_channels: [256, 128, 64]
+recon_loss: mse
+beta: 0.1

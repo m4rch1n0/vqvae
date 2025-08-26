@@ -5,18 +5,19 @@ from omegaconf import OmegaConf
 import hydra
 from hydra.utils import to_absolute_path
 
-from src.data.mnist import get_mnist_loaders
+from src.data import get_data_loaders
 from src.models.vae import VAE
 from src.training.engine import TrainingEngine
 from src.utils.system import set_seed, get_device
 from src.utils.logger import MlflowLogger
 
 
-@hydra.main(version_base=None, config_path='../../configs/mnist', config_name='train')
+@hydra.main(version_base=None, config_path='../../configs', config_name='train')
 def main(cfg) -> None:
     # Hydra changes CWD; use absolute paths for config files
-    data_cfg = OmegaConf.load(to_absolute_path('configs/mnist/data.yaml'))
-    vae_cfg  = OmegaConf.load(to_absolute_path('configs/mnist/vae.yaml'))
+    # Load root-level configs only
+    data_cfg = OmegaConf.load(to_absolute_path('configs/data.yaml'))
+    vae_cfg  = OmegaConf.load(to_absolute_path('configs/vae.yaml'))
 
     set_seed(cfg.seed)
     device = get_device(cfg.device)
@@ -39,13 +40,14 @@ def main(cfg) -> None:
     })
 
     # Data
-    train_loader, val_loader = get_mnist_loaders(
+    train_loader, val_loader = get_data_loaders(
+        name=str(getattr(data_cfg, 'name', 'MNIST')),
         root=to_absolute_path(data_cfg.root),
         batch_size=data_cfg.batch_size,
         num_workers=data_cfg.num_workers,
         pin_memory=data_cfg.pin_memory,
         persistent_workers=data_cfg.persistent_workers,
-        augment=data_cfg.augment,
+        augment=bool(getattr(data_cfg, 'augment', False)),
     )
 
     # Model
@@ -55,6 +57,7 @@ def main(cfg) -> None:
         dec_channels=vae_cfg.dec_channels,
         latent_dim=vae_cfg.latent_dim,
         recon_loss=vae_cfg.recon_loss,
+        output_image_size=int(getattr(vae_cfg, 'output_image_size', 28)),
     ).to(device)
 
     # Optimizer
@@ -67,8 +70,12 @@ def main(cfg) -> None:
         device=device,
     )
 
-    ckpt_dir = Path(to_absolute_path(cfg.ckpt_dir))
-    out_dir = Path(to_absolute_path(cfg.out_dir))
+    # Auto-adjust directories by dataset slug to keep results clustered per dataset
+    dataset_name = str(getattr(data_cfg, 'name', 'MNIST')).strip().lower()
+    ds_slug = 'vae_' + ('cifar10' if dataset_name == 'cifar10' else 'fashion' if 'fashion' in dataset_name else 'mnist')
+    base_out = Path(to_absolute_path(str(cfg.out_dir)))
+    out_dir = base_out.parent / ds_slug
+    ckpt_dir = out_dir / 'checkpoints'
 
     engine.train(
         train_loader=train_loader,
@@ -79,6 +86,8 @@ def main(cfg) -> None:
         logger=logger,
         output_dir=out_dir,
         save_latents_flag=bool(cfg.save_latents),
+        kl_anneal_epochs=int(getattr(cfg, 'kl_anneal_epochs', 0)),
+        beta=float(getattr(vae_cfg, 'beta', 1.0)),
     )
 
     logger.end()

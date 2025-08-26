@@ -1,7 +1,6 @@
 """Geodesic vs Euclidean codebook comparison."""
 import json
 import yaml
-import sys
 import argparse
 from pathlib import Path
 from datetime import datetime
@@ -16,6 +15,7 @@ from sklearn.cluster import KMeans
 
 from src.geo.kmeans_precomputed import fit_kmedoids_precomputed
 from src.geo.knn_graph import build_knn_graph, largest_connected_component
+from src.geo.geo_shortest_paths import dijkstra_multi_source
 from src.models.vae import VAE
 
 
@@ -52,15 +52,28 @@ def _load_latents(path: Path) -> np.ndarray:
 
 
 def _load_vae_model(checkpoint_path: Path, device: torch.device) -> VAE:
+    """Load VAE with architecture from config to match checkpoint."""
+    # Load root-level VAE config only
+    with open(Path("configs/vae.yaml"), "r") as f:
+        vae_cfg = yaml.safe_load(f) or {}
+
+    in_channels = vae_cfg.get("in_channels", 1)
+    latent_dim = vae_cfg.get("latent_dim", 16)
+    enc_channels = vae_cfg.get("enc_channels", [32, 64, 128])
+    dec_channels = vae_cfg.get("dec_channels", [128, 64, 32])
+    recon_loss = vae_cfg.get("recon_loss", "bce")
+    output_image_size = int(vae_cfg.get("output_image_size", 28))
+
     checkpoint = torch.load(checkpoint_path, map_location=device)
     model = VAE(
-        in_channels=1,
-        enc_channels=[32,64, 128], 
-        dec_channels=[128, 64, 32],
-        latent_dim=16,
-        recon_loss="bce"
+        in_channels=in_channels,
+        enc_channels=enc_channels,
+        dec_channels=dec_channels,
+        latent_dim=latent_dim,
+        recon_loss=recon_loss,
+        output_image_size=output_image_size,
     )
-    model.load_state_dict(checkpoint['model_state_dict'])
+    model.load_state_dict(checkpoint["model_state_dict"])  # type: ignore[index]
     model.to(device)
     model.eval()
     return model
@@ -73,7 +86,7 @@ def _build_euclidean_codebook(z: np.ndarray, K: int, seed: int = 42) -> Tuple[np
     return centroids, assign
 
 
-def _build_geodesic_codebook(z: np.ndarray, K: int, k_graph: int = 10, seed: int = 42, metric: str = "euclidean", sym: str = "mutual", mode: str = "distance") -> Tuple[np.ndarray, np.ndarray]:
+def _build_geodesic_codebook(z: np.ndarray, K: int, k_graph: int = 10, seed: int = 42, metric: str = "euclidean", sym: str = "mutual", mode: str = "distance") -> Tuple[np.ndarray, np.ndarray, object, np.ndarray, np.ndarray]:
     W, _ = build_knn_graph(z, k=k_graph, metric=metric, mode=mode, sym=sym)
     
     mask_lcc = largest_connected_component(W)
@@ -90,7 +103,8 @@ def _build_geodesic_codebook(z: np.ndarray, K: int, k_graph: int = 10, seed: int
     assign[mask_lcc] = assign_lcc
     
     centroids = z_lcc[medoids]
-    return centroids, assign
+    # Return additional artifacts to allow geodesic QE computation in caller
+    return centroids, assign, W, mask_lcc, medoids
 
 
 def _compute_reconstruction_quality(model: VAE, z_original: torch.Tensor, z_quantized: torch.Tensor, device: torch.device) -> float:
@@ -189,7 +203,7 @@ def main():
     centroids_euc, assign_euc = _build_euclidean_codebook(z, K, seed)
     
     print(f"Building geodesic codebook (K={K}, k_graph={k_graph})...")
-    centroids_geo, assign_geo = _build_geodesic_codebook(
+    centroids_geo, assign_geo, W_lcc, mask_lcc, medoids_lcc = _build_geodesic_codebook(
         z, K, k_graph, seed, 
         metric=config["graph"]["metric"], 
         sym=config["graph"]["sym"], 
@@ -212,7 +226,20 @@ def main():
     perp_geo = _compute_perplexity(assign_geo, K)
     
     qe_euc = np.mean(np.linalg.norm(z - z_quant_euc.numpy(), axis=1) ** 2)
-    qe_geo = np.mean(np.linalg.norm(z[valid_geo] - z_quant_geo[valid_geo].numpy(), axis=1) ** 2)
+
+    # Geodesic quantization error computed on the graph using shortest-path distances
+    # Only nodes in the largest connected component are valid for geodesic distances
+    if mask_lcc.any():
+        # Distances from each medoid to all nodes in the LCC: shape (K, N_lcc)
+        D_geo = dijkstra_multi_source(W_lcc, medoids_lcc)
+        # Recover assignments on the LCC to index D_geo row-wise
+        assign_lcc = assign_geo[mask_lcc]
+        idx = np.arange(assign_lcc.shape[0])
+        dmin = D_geo[assign_lcc, idx]
+        finite_mask = np.isfinite(dmin)
+        qe_geo = float(np.mean((dmin[finite_mask]) ** 2)) if finite_mask.any() else float("inf")
+    else:
+        qe_geo = float("inf")
     
     metrics = {
         'euclidean': {
@@ -242,8 +269,8 @@ def main():
         yaml.dump(config, f, default_flow_style=False, indent=2)
     
     print(f"\nComparison Results (K={K}):")
-    print(f"Euclidean  - MSE: {recon_mse_euc:.6f}, Perplexity: {perp_euc:.2f}")
-    print(f"Geodesic   - MSE: {recon_mse_geo:.6f}, Perplexity: {perp_geo:.2f}")
+    print(f"Euclidean  - MSE: {recon_mse_euc:.6f}, Perplexity: {perp_euc:.2f}, QE: {qe_euc:.2f}")
+    print(f"Geodesic   - MSE: {recon_mse_geo:.6f}, Perplexity: {perp_geo:.2f}, QE: {qe_geo:.2f}")
     print(f"Results saved to: {out_dir}")
     
     return out_dir

@@ -27,7 +27,7 @@ from src.geo.geo_shortest_paths import dijkstra_multi_source
 from src.geo.kmeans_precomputed import fit_kmedoids_graph
 
 
-def _load_latents(latent_path: Path) -> np.ndarray:
+def load_latents(latent_path: Path) -> np.ndarray:
     """Load latent matrix z from a torch file."""
     if not latent_path.exists():
         raise FileNotFoundError(f"Latents not found at: {latent_path}")
@@ -43,7 +43,7 @@ def _load_latents(latent_path: Path) -> np.ndarray:
     return z
 
 
-def _load_labels(label_path: Path) -> Optional[np.ndarray]:
+def load_labels(label_path: Path) -> Optional[np.ndarray]:
     """Load labels if available; return None otherwise."""
     if not label_path.exists():
         return None
@@ -120,13 +120,13 @@ def evaluate_setup(
             })
 
             if K == K_values[0] and init == inits[0]:
-                _plot_pca_with_clusters(W, assign, medoids, out_dir / f"pca_clusters_{tag}_K{K}_{init}.png")
-                _plot_code_usage(assign, K, out_dir / f"code_usage_{tag}_K{K}_{init}.png")
+                plot_pca_with_clusters(W, assign, medoids, out_dir / f"pca_clusters_{tag}_K{K}_{init}.png")
+                plot_code_usage(assign, K, out_dir / f"code_usage_{tag}_K{K}_{init}.png")
 
     return metrics
 
 
-def _plot_pca_with_clusters(W, assign: np.ndarray, medoids: np.ndarray, out_path: Path) -> None:
+def plot_pca_with_clusters(W, assign: np.ndarray, medoids: np.ndarray, out_path: Path) -> None:
     """PCA on distance-to-medoids features and scatter with medoids highlighted."""
     D = dijkstra_multi_source(W, medoids)  # (K, N)
     X = D.T  # (N, K)
@@ -149,7 +149,7 @@ def _plot_pca_with_clusters(W, assign: np.ndarray, medoids: np.ndarray, out_path
     plt.close()
 
 
-def _plot_code_usage(assign: np.ndarray, K: int, out_path: Path) -> None:
+def plot_code_usage(assign: np.ndarray, K: int, out_path: Path) -> None:
     counts = np.bincount(assign, minlength=K)
     probs = counts / max(1, counts.sum())
     nz = probs[probs > 0]
@@ -166,7 +166,7 @@ def _plot_code_usage(assign: np.ndarray, K: int, out_path: Path) -> None:
     plt.close()
 
 
-def _plot_elbow(metrics: List[Dict], out_path: Path, tag: str) -> None:
+def plot_elbow(metrics: List[Dict], out_path: Path, tag: str) -> None:
     """Elbow plot: qe_geo_finite vs K (one line per init)."""
     inits = sorted(set(m["init"] for m in metrics if m["graph"] == tag))
     K_values = sorted(set(int(m["K"]) for m in metrics if m["graph"] == tag))
@@ -186,9 +186,22 @@ def _plot_elbow(metrics: List[Dict], out_path: Path, tag: str) -> None:
 
 def main() -> Path:
     """Run the geodesic k-medoids demo with simple env-based config."""
-    LATENTS_PATH = Path(os.environ.get("KM_Z_PATH", "experiments/vae_mnist/latents_val/z.pt"))
-    LABELS_PATH = Path(os.environ.get("KM_Y_PATH", "experiments/vae_mnist/latents_val/y.pt"))
-    CHECKPOINT_PATH = Path(os.environ.get("KM_CKPT_PATH", "unused.ckpt"))
+    # Allow dataset-based defaults via KM_DATASET in {mnist,fashion,cifar10}
+    DS = os.environ.get("KM_DATASET", "mnist").strip().lower()
+    base = {
+        "mnist": "experiments/vae_mnist/latents_val",
+        "fashion": "experiments/vae_fashion/latents_val",
+        "cifar10": "experiments/vae_cifar10/latents_val",
+    }.get(DS, "experiments/vae_mnist/latents_val")
+
+    LATENTS_PATH = Path(os.environ.get("KM_Z_PATH", f"{base}/z.pt"))
+    LABELS_PATH = Path(os.environ.get("KM_Y_PATH", f"{base}/y.pt"))
+    ckpt_base = {
+        "mnist": "experiments/vae_mnist/checkpoints/best.pt",
+        "fashion": "experiments/vae_fashion/checkpoints/best.pt",
+        "cifar10": "experiments/vae_cifar10/checkpoints/best.pt",
+    }.get(DS, "experiments/vae_mnist/checkpoints/best.pt")
+    CHECKPOINT_PATH = Path(os.environ.get("KM_CKPT_PATH", ckpt_base))
 
     K_GRAPH = int(os.environ.get("KM_K_GRAPH", "10"))
     GRAPH_SYM = os.environ.get("KM_GRAPH_SYM", "mutual")  # mutual|union
@@ -203,8 +216,8 @@ def main() -> Path:
 
     print("K-medoids Geodesic Demo")
     print("Loading latents...")
-    z = _load_latents(LATENTS_PATH)
-    y = _load_labels(LABELS_PATH)
+    z = load_latents(LATENTS_PATH)
+    y = load_labels(LABELS_PATH)
     N, D = z.shape
     print(f"Loaded {N} vectors (dim={D}), labels={'yes' if y is not None else 'no'}")
 
@@ -227,7 +240,7 @@ def main() -> Path:
     with open(json_path, "w") as f:
         json.dump(metrics_all, f, indent=2)
 
-    _plot_elbow(metrics_all, out_dir / "elbow.png", tag="euclidean")
+    plot_elbow(metrics_all, out_dir / "elbow.png", tag="euclidean")
 
     print(f"Done. Outputs saved to: {out_dir}")
     return out_dir

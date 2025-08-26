@@ -50,12 +50,30 @@ Setup environment and download data:
 ./scripts/download_data.sh
 ```
 
+Select dataset (default: MNIST) in `configs/data.yaml`:
+```yaml
+# name: one of [MNIST, FashionMNIST]
+name: MNIST
+```
+
 Train VAE model:
 ```bash
 ./scripts/train_vae.sh
 ```
 
-Run demos:
+This saves checkpoints and latents to `experiments/vae_mnist/` (paths are configurable in `configs/train.yaml`).
+
+Build geodesic codebook (post‑hoc quantization on latents):
+```bash
+python src/training/build_codebook.py --config configs/quantize.yaml
+```
+
+Compare Euclidean vs Geodesic codebooks:
+```bash
+python demos/codebook_comparison.py --config test2
+```
+
+Run other demos:
 ```bash
 python demos/vae_knn_analysis.py
 python demos/interactive_exploration.py
@@ -101,9 +119,9 @@ Codebook Builder (`src/training/build_codebook.py`)
 ## Configuration
 
 Main configuration files in `configs/`:
-- `configs/vae.yaml` - VAE architecture and training
+- `configs/data.yaml` - Dataset configuration (set `name: MNIST` or `FashionMNIST`)
+- `configs/vae.yaml` - VAE architecture
 - `configs/train.yaml` - Training parameters
-- `configs/data.yaml` - Dataset configuration
 
 ## Results
 
@@ -111,6 +129,12 @@ Experimental outputs saved to:
 - `experiments/geo/` - Riemannian analysis results
 - `demo_outputs/` - Demo visualizations and quantization comparisons
 - `experiments/vae_mnist/` - Trained models and latent representations
+
+Notes:
+- Set `configs/vae.yaml` to match the dataset:
+  - `in_channels`: 1 for MNIST/Fashion, 3 for CIFAR10
+  - `output_image_size`: 28 for MNIST/Fashion, 32 for CIFAR10
+- Training auto-clusters outputs per dataset name (mnist/fashion/cifar10) for checkpoints and out dirs.
 
 ## Dependencies
 
