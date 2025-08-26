@@ -18,11 +18,17 @@ env/
 # Data and experiment artifacts
 /data/
 /experiments/
+/demo_outputs/
 /outputs/
 **/.hydra/
 *.pt
 *.ckpt
 *.log
+instruction.txt
+
+# Local datasets and archives
+/scripts/data/
+*.tar.gz
 
 # LaTeX build artifacts
 *.aux
