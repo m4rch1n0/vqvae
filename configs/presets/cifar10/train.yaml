@@ -1,6 +1,6 @@
 seed: 42
 device: auto
-max_epochs: 30  
+max_epochs: 100  
 lr: 3e-4
 weight_decay: 1e-4
 log_interval: 100
@@ -10,14 +10,14 @@ kl_anneal_epochs: 20
 out_dir: ./experiments/vae
 save_latents: true
 mlflow_tracking_uri: ./experiments/mlruns
-experiment_name: VAE_FashionMNIST
-run_name: vae_fashion_latent128_beta1.0_anneal20
+experiment_name: VAE_CIFAR10
+run_name: vae_latent128_beta0.5_anneal20
 
 # Optimizer and scheduler
 optimizer: adamw
 scheduler:
   name: cosine
-  t_max: 30
+  t_max: 100
 
 # Gradient clipping (0 disables)
 grad_clip_max_norm: 1.0

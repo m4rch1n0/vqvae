@@ -54,7 +54,9 @@ def build_and_save(config: Dict[str, Any]) -> Path:
     mode = str(config["graph"]["mode"])
 
     W, info = build_knn_graph(z, k=k, metric=metric, mode=mode, sym=sym)
-    print(f"Built k-NN graph: k={k}, edges={W.nnz}")
+    # For undirected graphs, nnz counts both directions; approximate unique edges as nnz/2
+    approx_undirected_edges = int(W.nnz // 2)
+    print(f"Built k-NN graph: k={k}, edges~{approx_undirected_edges}")
     
     mask_lcc = largest_connected_component(W)
     if mask_lcc.sum() < W.shape[0]:

@@ -6,7 +6,7 @@ A research implementation of vector quantization using geodesic distances in VAE
 
 This project revisits the classic VQ-VAE pipeline by separating the continuous representation learning from the quantization step. Instead of jointly learning a discrete latent space, we:
 
-1. **Train a standard continuous VAE** (e.g., on MNIST)
+1. **Train a standard continuous VAE** (Done on MNIST, Cifar10)
 2. **Apply geodesic K-means clustering** in the latent space using Riemannian distances
 3. **Build a discrete codebook** from geodesic centroids  
 4. **Compare reconstruction quality** vs. standard VQ-VAE
@@ -131,8 +131,13 @@ Experimental outputs saved to:
 - `experiments/vae_mnist/` - Trained models and latent representations
 
 Notes:
-- Set `configs/vae.yaml` to match the dataset:
-  - `in_channels`: 1 for MNIST/Fashion, 3 for CIFAR10
+- Dataset presets live under `configs/presets/<dataset>/`. Root files (`configs/data.yaml`, `configs/vae.yaml`, `configs/train.yaml`) are real copies of the chosen preset.
+- Switch dataset quickly:
+  ```bash
+  bash scripts/select_dataset.sh mnist   # or fashion, cifar10
+  ```
+  Then run training/quantization as usual.
+- Ensure `in_channels` matches the dataset (`1` for MNIST/Fashion, `3` for CIFAR10).
   - `output_image_size`: 28 for MNIST/Fashion, 32 for CIFAR10
 - Training auto-clusters outputs per dataset name (mnist/fashion/cifar10) for checkpoints and out dirs.
 

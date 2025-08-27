@@ -9,6 +9,7 @@ import numpy as np
 from scipy import sparse
 import psutil
 from src.geo.geo_shortest_paths import dijkstra_multi_source
+from tqdm import tqdm
 
 
 def _check_ram_requirements(N: int) -> None:
@@ -51,18 +52,17 @@ def _compute_distance_matrix_chunked(W: sparse.spmatrix, chunk_size: int = 1000)
     """Compute pairwise geodesic distances in chunks to manage memory."""
     N = W.shape[0]
     D = np.full((N, N), fill_value=np.inf, dtype=np.float32)
-    
-    print(f"Computing {N}x{N} distance matrix...")
+
+    total_chunks = (N + chunk_size - 1) // chunk_size
+    pbar = tqdm(total=total_chunks, desc=f"Distances {N}x{N}")
     for start in range(0, N, chunk_size):
         end = min(start + chunk_size, N)
         sources = list(range(start, end))
         D_chunk = dijkstra_multi_source(W, sources, dtype=np.float32)
         D[start:end] = D_chunk
-        
-        # Progress update every 5 chunks
-        if (start // chunk_size) % 5 == 0:
-            print(f"Progress: {end}/{N} ({100*end/N:.0f}%)")
-    
+        pbar.update(1)
+    pbar.close()
+
     return D
 
 

@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from torch.optim import Adam
+from torch.optim import Adam, AdamW
+from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
 from omegaconf import OmegaConf
 import hydra
 from hydra.utils import to_absolute_path
@@ -58,10 +59,28 @@ def main(cfg) -> None:
         latent_dim=vae_cfg.latent_dim,
         recon_loss=vae_cfg.recon_loss,
         output_image_size=int(getattr(vae_cfg, 'output_image_size', 28)),
+        norm_type=str(getattr(vae_cfg, 'norm_type', 'none')),
+        mse_use_sigmoid=bool(getattr(vae_cfg, 'mse_use_sigmoid', True)),
     ).to(device)
 
     # Optimizer
-    opt = Adam(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
+    optimizer_name = str(getattr(cfg, 'optimizer', 'adam')).lower()
+    if optimizer_name == 'adamw':
+        opt = AdamW(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
+    else:
+        opt = Adam(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
+
+    scheduler = None
+    sched_cfg = getattr(cfg, 'scheduler', None)
+    if sched_cfg is not None:
+        sched_name = str(getattr(sched_cfg, 'name', 'none')).lower()
+        if sched_name == 'cosine':
+            T_max = int(getattr(sched_cfg, 't_max', cfg.max_epochs))
+            scheduler = CosineAnnealingLR(opt, T_max=T_max)
+        elif sched_name == 'step':
+            step_size = int(getattr(sched_cfg, 'step_size', 50))
+            gamma = float(getattr(sched_cfg, 'gamma', 0.1))
+            scheduler = StepLR(opt, step_size=step_size, gamma=gamma)
 
     # Train via engine
     engine = TrainingEngine(
@@ -87,7 +106,9 @@ def main(cfg) -> None:
         output_dir=out_dir,
         save_latents_flag=bool(cfg.save_latents),
         kl_anneal_epochs=int(getattr(cfg, 'kl_anneal_epochs', 0)),
-        beta=float(getattr(vae_cfg, 'beta', 1.0)),
+        beta=float(getattr(vae_cfg, 'beta', 0.5)),
+        grad_clip_max_norm=float(getattr(cfg, 'grad_clip_max_norm', 0.0)),
+        scheduler=scheduler,
     )
 
     logger.end()

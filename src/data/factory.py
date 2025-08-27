@@ -40,14 +40,18 @@ def _get_fashion_mnist_loaders(root: str, batch_size: int, num_workers: int = 4,
 def _get_cifar10_loaders(root: str, batch_size: int, num_workers: int = 4,
                          pin_memory: bool = True, persistent_workers: bool = True,
                          augment: bool = False) -> Tuple[DataLoader, DataLoader]:
-    tfms_train = [transforms.ToTensor()]
+    # CIFAR-10 per-channel normalization
+    cifar_mean = (0.4914, 0.4822, 0.4465)
+    cifar_std = (0.2470, 0.2430, 0.2610)
+    norm = transforms.Normalize(mean=cifar_mean, std=cifar_std)
+    tfms_train = [transforms.ToTensor(), norm]
     if augment:
         tfms_train = [
             transforms.RandomCrop(32, padding=4),
             transforms.RandomHorizontalFlip(),
         ] + tfms_train
     transform_train = transforms.Compose(tfms_train)
-    transform_test = transforms.Compose([transforms.ToTensor()])
+    transform_test = transforms.Compose([transforms.ToTensor(), norm])
 
     train_ds = datasets.CIFAR10(root, train=True, download=True, transform=transform_train)
     test_ds = datasets.CIFAR10(root, train=False, download=True, transform=transform_test)

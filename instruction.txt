@@ -1,0 +1,44 @@
+Project ID 4 – Post-hoc VQ-VAE with Geodesic Quantization
+Goal: Rethink the VQ-VAE pipeline. Instead of jointly learning the discrete latent space, start with a continuous VAE and then apply post-hoc vector quantization using geodesic distances in the latent space (instead of Euclidean ones).
+
+Suggested Workflow
+1. Train a standard VAE (dataset of choice: MNIST, audio, images…).
+2. Apply K-means clustering in the latent space, replacing Euclidean distance with a geodesic metric (e.g., shortest path on a k-NN graph or Riemannian approximations).
+3. Assign latent vectors to their nearest centroid and build a discrete codebook.
+4. Train an autoregressive model (PixelCNN/Transformer) on the resulting discrete codes.
+5. Compare with a standard end-to-end VQ-VAE (reconstruction quality, sample fidelity, perplexity).
+
+Aspects to Explore
+1. Geometry of latent spaces and non-Euclidean clustering.
+2. Tradeoffs between post-hoc discretization and learned quantization.
+3. Extensions to multiple domains (not only MNIST).
+
+Evaluation Criteria (30 pts)
+- Problem clarity & motivation (5)
+- Literature review (5)
+- Technical depth (10)
+- Creativity & ambition (5)
+- Clarity & communication (5)
+
+---
+
+System Instruction:
+If code is requested, always produce clean, readable, and simple code that follows SOLID principles. Use comments only where necessary, keeping the style consistent with the user’s existing code. All must be done in english.
+The project runs on a conda environment which is calles "rocm_env", so be sure to run "conda activate rocm_env" before running code.
+
+
+
+~/De/vqvae geodesic-modules !1 ?1 ❯ python src/training/build_codebook.py --config configs/quantize_cifar10.yaml
+Loaded latents: N=50000, D=128
+Built k-NN graph: k=100, edges=243186
+Using LCC: 20840/50000 nodes
+Computing 20840x20840 distance matrix...
+Progress: 1000/20840 (5%)
+Progress: 6000/20840 (29%)
+Progress: 11000/20840 (53%)
+Progress: 16000/20840 (77%)
+Progress: 20840/20840 (100%)
+K-medoids completed: 512 clusters, 20840 points
+Quantization error: 18924066.000
+Saved artifacts to: experiments/geo/codebook_cifar10_k512_kNN10
+Completed: experiments/geo/codebook_cifar10_k512_kNN10

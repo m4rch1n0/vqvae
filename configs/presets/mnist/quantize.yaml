@@ -1,10 +1,10 @@
-# Sandbox config for benchmark (MNIST)
+# Config for build codebook geodesic (MNIST)
 data:
   latents_path: experiments/vae_mnist/latents_train/z.pt
   labels_path: experiments/vae_mnist/latents_train/y.pt
 
 out:
-  dir: experiments/geo/codebook_benchmark_k128_kNN10
+  dir: experiments/geo/codebook_mnist_k512_kNN10
 
 graph:
   k: 10
@@ -13,12 +13,9 @@ graph:
   mode: distance
 
 quantize:
-  K: 128
+  K: 512
   init: kpp
   seed: 42
 
 system:
   device: cpu
-
-test:
-  subset_size: 10000
