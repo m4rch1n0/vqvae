@@ -1,7 +1,7 @@
-# Dataset & DataLoader
+# Dataset & DataLoader for Fashion-MNIST
 # name: one of [MNIST, FashionMNIST, CIFAR10]
 root: ./data
-name: CIFAR10
+name: FashionMNIST
 batch_size: 256
 num_workers: 16
 pin_memory: true
