@@ -6,7 +6,7 @@ A research implementation of vector quantization using geodesic distances in VAE
 
 This project revisits the classic VQ-VAE pipeline by separating the continuous representation learning from the quantization step. Instead of jointly learning a discrete latent space, we:
 
-1. **Train a standard continuous VAE** (e.g., on MNIST)
+1. **Train a standard continuous VAE** (Done on MNIST, Cifar10)
 2. **Apply geodesic K-means clustering** in the latent space using Riemannian distances
 3. **Build a discrete codebook** from geodesic centroids  
 4. **Compare reconstruction quality** vs. standard VQ-VAE

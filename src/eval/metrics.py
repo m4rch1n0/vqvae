@@ -28,3 +28,4 @@ def codebook_stats(codes: torch.Tensor, K: int) -> dict:
     return {"entropy": entropy, "dead_codes": dead, "used": int((hist>0).sum())}
 
 
+
