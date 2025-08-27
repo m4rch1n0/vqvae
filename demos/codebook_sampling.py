@@ -7,6 +7,7 @@ This does NOT recompute geodesic assignments for the selected set; it uses
 Euclidean nearest medoids to the precomputed geodesic codebook medoids, which is
 adequate for visualization.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -53,9 +54,9 @@ def _nearest_medoid_indices(z_sel: np.ndarray, z_medoid: np.ndarray) -> np.ndarr
     # z_sel: (M, D), z_medoid: (K, D)
     # returns: (M,) argmin over medoids
     # Use (a-b)^2 = a^2 + b^2 - 2ab to avoid large allocations if needed
-    a2 = np.sum(z_sel**2, axis=1, keepdims=True)         # (M,1)
-    b2 = np.sum(z_medoid**2, axis=1, keepdims=True).T    # (1,K)
-    ab = z_sel @ z_medoid.T                              # (M,K)
+    a2 = np.sum(z_sel**2, axis=1, keepdims=True)  # (M,1)
+    b2 = np.sum(z_medoid**2, axis=1, keepdims=True).T  # (1,K)
+    ab = z_sel @ z_medoid.T  # (M,K)
     d2 = a2 + b2 - 2.0 * ab
     return np.argmin(d2, axis=1)
 
@@ -68,15 +69,30 @@ def _make_grid(x_top: torch.Tensor, x_bottom: torch.Tensor) -> torch.Tensor:
 
 def main() -> None:
     p = argparse.ArgumentParser(description="Reconstruction grid from codebook")
-    p.add_argument("--codebook_dir", type=str, required=True,
-                   help="Directory containing codebook.pt and codes.npy")
-    p.add_argument("--latents_path", type=str, default="experiments/vae_cifar10/latents_val/z.pt",
-                   help="Path to latents tensor (z.pt)")
-    p.add_argument("--checkpoint", type=str, default="experiments/vae_cifar10/checkpoints/best.pt",
-                   help="Path to VAE checkpoint (best.pt)")
+    p.add_argument(
+        "--codebook_dir",
+        type=str,
+        required=True,
+        help="Directory containing codebook.pt and codes.npy",
+    )
+    p.add_argument(
+        "--latents_path",
+        type=str,
+        default="experiments/vae_cifar10/latents_val/z.pt",
+        help="Path to latents tensor (z.pt)",
+    )
+    p.add_argument(
+        "--checkpoint",
+        type=str,
+        default="experiments/vae_cifar10/checkpoints/best.pt",
+        help="Path to VAE checkpoint (best.pt)",
+    )
     p.add_argument("--num_samples", type=int, default=16)
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--out", type=str, default="reconstruction_grid_quantized.png")
+    p.add_argument(
+        "--out_dir", type=str, default="", help="Optional directory to save outputs"
+    )
     args = p.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -136,18 +152,19 @@ def main() -> None:
     with open(Path("configs/data.yaml"), "r") as f:
         data_cfg = yaml.safe_load(f) or {}
     if str(data_cfg.get("name", "")).strip().upper() == "CIFAR10" and not apply_sigmoid:
-        mean = torch.tensor([0.4914, 0.4822, 0.4465]).view(1,3,1,1)
-        std  = torch.tensor([0.2470, 0.2430, 0.2610]).view(1,3,1,1)
+        mean = torch.tensor([0.4914, 0.4822, 0.4465]).view(1, 3, 1, 1)
+        std = torch.tensor([0.2470, 0.2430, 0.2610]).view(1, 3, 1, 1)
         x_orig = (x_orig * std + mean).clamp(0, 1)
         x_quant = (x_quant * std + mean).clamp(0, 1)
 
     grid = _make_grid(x_top=x_orig, x_bottom=x_quant)
-    out_path = codebook_dir / args.out
+    # If out_dir is set, write there; else, default under codebook_dir
+    base_out_dir = Path(args.out_dir) if args.out_dir else codebook_dir
+    base_out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = base_out_dir / args.out
     torchvision.utils.save_image(grid, out_path)
     print(f"Saved reconstruction grid to: {out_path}")
 
 
 if __name__ == "__main__":
     main()
-
-
