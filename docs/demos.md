@@ -113,6 +113,15 @@ python demos/interactive_exploration.py
 
 # Geodesic k-medoids (post-hoc quantization on precomputed latents)
 python demos/kmedoids_geodesic_analysis.py
+
+
+#TODO: investigate sampling because as for now I'm not sure these works.
+# Reconstruct grid using a codebook (supports optional --out_dir)
+python demos/codebook_sampling.py \
+  --codebook_dir experiments/geo/codebook_<dataset>_k1024/ \
+  --latents_path experiments/vae_<dataset>/latents_val/z.pt \
+  --checkpoint experiments/vae_<dataset>/checkpoints/best.pt \
+  --out_dir demo_outputs/codebook_sampling_<dataset>/
 ```
 
 **Dependencies:**

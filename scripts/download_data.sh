@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Usage: ./scripts/download_data.sh [mnist|fashion|cifar10]
-DS=${1:-mnist}
+DS=${1:-fashion}
 export DS
 
 python3 - <<'PY'

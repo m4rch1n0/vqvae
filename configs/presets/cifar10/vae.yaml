@@ -1,6 +1,6 @@
-# VAE architecture for Fashion-MNIST
-in_channels: 1 # 1 for Fashion-MNIST (grayscale)
-output_image_size: 28 # 28x28 for Fashion-MNIST
+# VAE architecture
+in_channels: 3 # 3 for CIFAR10
+output_image_size: 32 # 28 for MNIST, 32 for CIFAR10
 latent_dim: 128
 enc_channels: [64, 128, 256]
 dec_channels: [256, 128, 64]

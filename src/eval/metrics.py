@@ -9,7 +9,7 @@ def psnr(x: Tensor, y: Tensor, max_val: float = 1.0) -> float:
 
 @torch.no_grad()
 def ssim_simple(x: Tensor, y: Tensor, C1=0.01**2, C2=0.03**2) -> float:
-    # semplice SSIM “global”, non finestrato per rapidità
+    # Simple global SSIM (non-windowed) for speed
     mu_x, mu_y = x.mean(), y.mean()
     sigma_x = x.var(unbiased=False)
     sigma_y = y.var(unbiased=False)
@@ -20,12 +20,21 @@ def ssim_simple(x: Tensor, y: Tensor, C1=0.01**2, C2=0.03**2) -> float:
 
 @torch.no_grad()
 def codebook_stats(codes: torch.Tensor, K: int) -> dict:
-    # codes: (N,) int64
-    hist = torch.bincount(codes, minlength=K).float()
-    p = (hist / hist.sum()).clamp_min(1e-12)
+    # codes: (N,) int64, may contain -1 for invalid/unassigned
+    if codes.dim() != 1:
+        codes = codes.view(-1)
+    codes = codes.long()
+    valid = codes >= 0
+    if valid.any():
+        hist = torch.bincount(codes[valid], minlength=K).float()
+    else:
+        hist = torch.zeros(K, dtype=torch.float32)
+    p = (hist / hist.sum().clamp_min(1e-12)).clamp_min(1e-12)
     entropy = float(-(p * p.log()).sum())
     dead = int((hist == 0).sum())
     return {"entropy": entropy, "dead_codes": dead, "used": int((hist>0).sum())}
+
+
 
 
 
