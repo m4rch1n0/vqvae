@@ -136,11 +136,11 @@ run_dataset() {
 # MNIST
 run_dataset mnist configs/presets/mnist/quantize.yaml
 
-# CIFAR10 (K=512 default config for moderate runtime)
-run_dataset cifar10 configs/quantize_cifar10.yaml
+# CIFAR10 (use preset quantize config)
+run_dataset cifar10 configs/presets/cifar10/quantize.yaml
 
-# Fashion-MNIST (K=1024 per current preset)
-run_dataset fashion configs/quantize_fashion_k1024.yaml
+# Fashion-MNIST (use preset K=1024 quantize config)
+run_dataset fashion configs/presets/fashion/quantize_k1024.yaml
 
 echo "\nAll datasets completed successfully. Artifacts under experiments/ and demo_outputs/workflow_checks/"
 

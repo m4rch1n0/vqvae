@@ -33,14 +33,8 @@ cp -f "presets/$CHOICE/data.yaml" data.yaml
 cp -f "presets/$CHOICE/vae.yaml" vae.yaml
 cp -f "presets/$CHOICE/train.yaml" train.yaml
 
-# Keep dataset-specific convenience links for backward compatibility
-cp -f "presets/fashion/data.yaml" data_fashion.yaml
-cp -f "presets/fashion/vae.yaml" vae_fashion.yaml
-cp -f "presets/fashion/train.yaml" train_fashion.yaml
-
-cp -f "presets/cifar10/quantize.yaml" quantize_cifar10.yaml || true
-cp -f "presets/cifar10/quantize_k1024.yaml" quantize_cifar10_k1024.yaml || true
-cp -f "presets/fashion/quantize_k1024.yaml" quantize_fashion_k1024.yaml || true
+# No longer creating duplicate dataset-specific files at root.
+# Use presets/ directly in scripts to avoid redundancy.
 
 # Default quantize config points to MNIST preset unless dataset provides one
 if [ -f "presets/$CHOICE/quantize.yaml" ]; then

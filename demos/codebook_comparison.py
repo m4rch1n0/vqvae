@@ -23,10 +23,10 @@ def parse_args():
     """Parse command line arguments for configuration selection."""
     parser = argparse.ArgumentParser(description="Geodesic vs Euclidean codebook comparison")
     parser.add_argument(
-        "--config", 
-        type=str, 
+        "--config",
+        type=str,
         default="test2",
-        choices=["test1", "test2", "test3", "test4", "test5"],
+        choices=["test1", "test2"],
         help="Configuration to use (default: test2)"
     )
     return parser.parse_args()
@@ -34,13 +34,10 @@ def parse_args():
 
 # Available configurations:
 # Standard:           --config test1
-# Experimental:       --config test2  
-# High Resolution:    --config test3
-# Memory Efficient:   --config test4
-# Multi-Metric:       --config test5
+# Experimental:       --config test2
 
 
-def _load_latents(path: Path) -> np.ndarray:
+def load_latents(path: Path) -> np.ndarray:
     obj = torch.load(path, map_location="cpu")
     if isinstance(obj, dict) and "z" in obj:
         z = obj["z"]
@@ -51,7 +48,7 @@ def _load_latents(path: Path) -> np.ndarray:
     return z.float()
 
 
-def _load_vae_model(checkpoint_path: Path, device: torch.device) -> VAE:
+def load_vae_model(checkpoint_path: Path, device: torch.device) -> VAE:
     """Load VAE with architecture from config to match checkpoint."""
     # Load root-level VAE config only
     with open(Path("configs/vae.yaml"), "r") as f:
@@ -79,14 +76,14 @@ def _load_vae_model(checkpoint_path: Path, device: torch.device) -> VAE:
     return model
 
 
-def _build_euclidean_codebook(z: np.ndarray, K: int, seed: int = 42) -> Tuple[np.ndarray, np.ndarray]:
+def build_euclidean_codebook(z: np.ndarray, K: int, seed: int = 42) -> Tuple[np.ndarray, np.ndarray]:
     kmeans = KMeans(n_clusters=K, random_state=seed, n_init=10)
     assign = kmeans.fit_predict(z)
     centroids = kmeans.cluster_centers_
     return centroids, assign
 
 
-def _build_geodesic_codebook(z: np.ndarray, K: int, k_graph: int = 10, seed: int = 42, metric: str = "euclidean", sym: str = "mutual", mode: str = "distance") -> Tuple[np.ndarray, np.ndarray, object, np.ndarray, np.ndarray]:
+def build_geodesic_codebook(z: np.ndarray, K: int, k_graph: int = 10, seed: int = 42, metric: str = "euclidean", sym: str = "mutual", mode: str = "distance") -> Tuple[np.ndarray, np.ndarray, object, np.ndarray, np.ndarray]:
     W, _ = build_knn_graph(z, k=k_graph, metric=metric, mode=mode, sym=sym)
     
     mask_lcc = largest_connected_component(W)
@@ -107,7 +104,7 @@ def _build_geodesic_codebook(z: np.ndarray, K: int, k_graph: int = 10, seed: int
     return centroids, assign, W, mask_lcc, medoids
 
 
-def _compute_reconstruction_quality(model: VAE, z_original: torch.Tensor, z_quantized: torch.Tensor, device: torch.device) -> float:
+def compute_reconstruction_quality(model: VAE, z_original: torch.Tensor, z_quantized: torch.Tensor, device: torch.device) -> float:
     model.eval()
     with torch.no_grad():
         z_orig_dev = z_original.to(device)
@@ -120,7 +117,7 @@ def _compute_reconstruction_quality(model: VAE, z_original: torch.Tensor, z_quan
     return mse
 
 
-def _compute_perplexity(assign: np.ndarray, K: int) -> float:
+def compute_perplexity(assign: np.ndarray, K: int) -> float:
     valid_mask = assign >= 0
     if not valid_mask.any():
         return 0.0
@@ -134,7 +131,7 @@ def _compute_perplexity(assign: np.ndarray, K: int) -> float:
     return float(np.exp(entropy))
 
 
-def _save_comparison_plot(metrics: Dict[str, Dict[str, float]], out_dir: Path) -> None:
+def save_comparison_plot(metrics: Dict[str, Dict[str, float]], out_dir: Path) -> None:
     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
     
     methods = ['Euclidean', 'Geodesic']
@@ -194,16 +191,16 @@ def main():
         device = torch.device(config["experiment"]["device"])
     print(f"Using device: {device}")
     
-    z = _load_latents(latents_path).numpy()
-    model = _load_vae_model(checkpoint_path, device)
+    z = load_latents(latents_path).numpy()
+    model = load_vae_model(checkpoint_path, device)
     N, D = z.shape
     print(f"Loaded {N} latents (dim={D})")
     
     print(f"Building Euclidean codebook (K={K})...")
-    centroids_euc, assign_euc = _build_euclidean_codebook(z, K, seed)
+    centroids_euc, assign_euc = build_euclidean_codebook(z, K, seed)
     
     print(f"Building geodesic codebook (K={K}, k_graph={k_graph})...")
-    centroids_geo, assign_geo, W_lcc, mask_lcc, medoids_lcc = _build_geodesic_codebook(
+    centroids_geo, assign_geo, W_lcc, mask_lcc, medoids_lcc = build_geodesic_codebook(
         z, K, k_graph, seed, 
         metric=config["graph"]["metric"], 
         sym=config["graph"]["sym"], 
@@ -219,11 +216,11 @@ def main():
     if valid_geo.any():
         z_quant_geo[valid_geo] = torch.from_numpy(centroids_geo[assign_geo[valid_geo]]).float()
     
-    recon_mse_euc = _compute_reconstruction_quality(model, z_tensor, z_quant_euc, device)
-    recon_mse_geo = _compute_reconstruction_quality(model, z_tensor[valid_geo], z_quant_geo[valid_geo], device)
+    recon_mse_euc = compute_reconstruction_quality(model, z_tensor, z_quant_euc, device)
+    recon_mse_geo = compute_reconstruction_quality(model, z_tensor[valid_geo], z_quant_geo[valid_geo], device)
     
-    perp_euc = _compute_perplexity(assign_euc, K)
-    perp_geo = _compute_perplexity(assign_geo, K)
+    perp_euc = compute_perplexity(assign_euc, K)
+    perp_geo = compute_perplexity(assign_geo, K)
     
     qe_euc = np.mean(np.linalg.norm(z - z_quant_euc.numpy(), axis=1) ** 2)
 
@@ -258,7 +255,7 @@ def main():
     
     # Save results based on configuration
     if config["experiment"]["save_plots"]:
-        _save_comparison_plot(metrics, out_dir)
+        save_comparison_plot(metrics, out_dir)
     
     if config["experiment"]["save_metrics"]:
         with open(out_dir / "metrics.json", "w") as f:

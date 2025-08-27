@@ -40,7 +40,6 @@ def create_synthetic_latents():
 
 
 def main():
-    """Run the interactive k-NN geodesic visualization demo."""
     print("Interactive VAE k-NN Geodesic Visualization")
     
     # Generate synthetic data
@@ -48,12 +47,9 @@ def main():
     latents_2d, labels = create_synthetic_latents()
     print(f"Generated {len(latents_2d)} points with {len(np.unique(labels))} classes")
     
-    print("Launching interactive visualization...")
-    
     # Launch interactive visualization
     viz = create_interactive_demo(latents_2d, labels)
     viz.show()
-
 
 if __name__ == '__main__':
     main()
