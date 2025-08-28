@@ -16,15 +16,17 @@ env/
 .DS_Store
 
 # Data and experiment artifacts
-/data/
-/experiments/
-/demo_outputs/
-/outputs/
+data/
+
+#/experiments/
+#/demo_outputs/
+mlruns/
+outputs/
 **/.hydra/
 *.pt
 *.ckpt
 *.log
-instruction.txt
+#instruction.txt
 prompt.txt
 
 # Local datasets and archives

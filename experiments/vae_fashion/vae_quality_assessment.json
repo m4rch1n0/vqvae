@@ -1,0 +1,9 @@
+{
+  "dataset": "FashionMNIST",
+  "checkpoint_epoch": 1,
+  "psnr_db": 15.176345825195312,
+  "ssim": 0.1692160815000534,
+  "quality_rating": "good",
+  "recommendation": "proceed",
+  "samples_evaluated": 2048
+}
