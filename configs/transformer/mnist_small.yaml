@@ -1,0 +1,41 @@
+seed: 42
+device: auto
+
+mlflow_tracking_uri: ./experiments/mlruns
+experiment_name: transformer
+run_name: gpt-mnist-small
+
+data:
+  codes_train: experiments/geo/test_optimized_mnist/codes.npy
+  codes_val: experiments/geo/test_optimized_mnist/codes.npy
+  classes_train: experiments/vae_mnist/latents_train/y.pt
+  classes_val: experiments/vae_mnist/latents_val/y.pt
+
+tokens:
+  add_bos: true
+  add_eos: true
+  # IDs are auto-assigned compactly in the script
+
+model:
+  seq_len: 28*28
+  embed_dim: 192
+  num_layers: 6
+  num_heads: 6
+  mlp_ratio: 4.0
+  attn_dropout: 0.0
+  resid_dropout: 0.1
+  class_conditional: true
+  num_classes: 10
+
+training:
+  max_epochs: 5
+  batch_size: 128
+  num_workers: 4
+  lr: 3e-4
+  weight_decay: 0.01
+  grad_clip_max_norm: 1.0
+
+out:
+  dir: experiments/transformer/mnist_small
+
+

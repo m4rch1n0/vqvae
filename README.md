@@ -17,12 +17,12 @@ This project revisits the classic VQ-VAE pipeline by separating the continuous r
 
 ```
 vqvae/
-├── src/                    # Core implementation
-│   ├── data/              # Dataset loaders (MNIST)
+├── src/                   
+│   ├── data/              # Dataset loaders (MNIST, FashionMNIST, cifar10)
 │   ├── models/            # VAE architecture
 │   ├── geo/               # Geodesic computation modules
 │   ├── training/          # Training pipeline
-│   └── utils/             # System utilities
+│   └── utils/             
 ├── demos/                  # Interactive examples
 │   ├── vae_knn_analysis.py           # Main latent space analysis demo
 │   ├── interactive_exploration.py    # Interactive k-NN visualization
@@ -31,11 +31,11 @@ vqvae/
 ├── experiments/           # Research experiments  
 │   ├── geo/              # Riemannian geometry experiments
 │   └── vae_mnist/        # Trained models and latents
-├── scripts/              # Utility scripts
+├── scripts/              
 │   ├── setup_env.sh      # Environment setup
-│   ├── download_data.sh  # Data download
-│   ├── train_vae.sh      # VAE training
-│   └── run_experiments.sh  # Full experimental pipeline
+│   ├── download_data.sh  
+│   ├── train_vae.sh
+│   └── run_experiments.sh 
 ├── docs/                 # Technical documentation
 │   ├── geo/              # Riemannian geometry docs
 │   └── models/           # Model architecture docs

@@ -1,0 +1,46 @@
+seed: 42
+device: auto
+
+mlflow_tracking_uri: ./experiments/mlruns
+experiment_name: transformer
+run_name: gpt-codes
+
+data:
+  # By default point to CIFAR10 geodesic/euclidean codes if present
+  # Update these to your dataset/run
+  codes_train: experiments/geo/codebook_cifar10_k512_kNN10/codes.npy
+  codes_val: experiments/geo/codebook_cifar10_k512_kNN10/codes.npy
+  classes_train: experiments/vae_cifar10/latents_train/y.pt
+  classes_val: experiments/vae_cifar10/latents_val/y.pt
+
+tokens:
+  add_bos: true
+  add_eos: true
+  bos_id: 510000
+  eos_id: 510001
+  pad_id: 0
+
+model:
+  seq_len: 1024
+  embed_dim: 256
+  num_layers: 8
+  num_heads: 8
+  mlp_ratio: 4.0
+  attn_dropout: 0.0
+  resid_dropout: 0.1
+  class_conditional: true
+  num_classes: 10
+
+training:
+  max_epochs: 10
+  batch_size: 128
+  num_workers: 4
+  lr: 3e-4
+  weight_decay: 0.01
+  grad_clip_max_norm: 1.0
+  amp: true
+
+out:
+  dir: experiments/transformer/cifar10_gpt_small
+
+

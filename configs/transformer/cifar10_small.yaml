@@ -1,0 +1,41 @@
+seed: 42
+device: auto
+
+mlflow_tracking_uri: ./experiments/mlruns
+experiment_name: transformer
+run_name: gpt-cifar10-small
+
+data:
+  codes_train: experiments/geo/test_optimized_cifar10/codes.npy
+  codes_val: experiments/geo/test_optimized_cifar10/codes_val.npy
+  classes_train: experiments/vae_cifar10/latents_train/y.pt
+  classes_val: experiments/vae_cifar10/latents_val/y.pt
+
+tokens:
+  add_bos: true
+  add_eos: true
+  # IDs are auto-assigned compactly in the script
+
+model:
+  seq_len: 1024
+  embed_dim: 256
+  num_layers: 8
+  num_heads: 8
+  mlp_ratio: 4.0
+  attn_dropout: 0.0
+  resid_dropout: 0.1
+  class_conditional: true
+  num_classes: 10
+
+training:
+  max_epochs: 10
+  batch_size: 128
+  num_workers: 4
+  lr: 3e-4
+  weight_decay: 0.01
+  grad_clip_max_norm: 1.0
+
+out:
+  dir: experiments/transformer/cifar10_small
+
+
