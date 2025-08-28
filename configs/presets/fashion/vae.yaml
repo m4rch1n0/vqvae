@@ -8,4 +8,4 @@ recon_loss: mse
 beta: 1.0
 norm_type: batch # one of [none, batch, group]
 # Fashion-MNIST typically uses values in [0,1] without normalization
-mse_use_sigmoid: false
+mse_use_sigmoid: true
