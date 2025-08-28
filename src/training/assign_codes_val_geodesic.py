@@ -1,95 +1,125 @@
-import argparse, numpy as np, torch
+"""Assign validation samples to geodesic codebook using graph distances."""
+import argparse
+import numpy as np
+import torch
 from scipy.sparse.csgraph import connected_components
+
 from src.geo.knn_graph_optimized import build_knn_graph
 from src.geo.geo_shortest_paths import dijkstra_single_source
 
-def _tload(path):
-    try: return torch.load(path, map_location="cpu", weights_only=False)
-    except TypeError: return torch.load(path, map_location="cpu")
 
-def _load_latents(path):
-    z = torch.load(path, map_location="cpu")
-    return z.get("z", z).float().cpu().numpy() if isinstance(z, dict) else z.float().cpu().numpy()
+def load_tensor(path):
+    """Load tensor with compatibility for different PyTorch versions."""
+    try:
+        return torch.load(path, map_location="cpu", weights_only=False)
+    except TypeError:
+        return torch.load(path, map_location="cpu")
 
-def _map_medoids_to_train_indices(z_train_np, z_medoid_np, batch=8192):
-    # Mappa ogni medoid al NN in z_train per evitare mismatch di indici
-    zt = torch.from_numpy(z_train_np)
-    zm = torch.from_numpy(z_medoid_np)
-    out = []
-    for i in range(0, len(zm), batch):
-        d = torch.cdist(zm[i:i+batch], zt)      # (b, Ntrain)
-        out.append(d.argmin(dim=1).cpu())
-    return torch.cat(out, 0).numpy()            # (K,)
+
+def load_latents(path):
+    """Load latent vectors from file (handles both dict and tensor formats)."""
+    data = torch.load(path, map_location="cpu")
+    if isinstance(data, dict):
+        latents = data.get("z", data)
+    else:
+        latents = data
+    return latents.float().cpu().numpy()
+
+
+def find_nearest_train_indices(train_latents, medoid_latents, batch_size=8192):
+    """Map each medoid to its nearest neighbor in the training set."""
+    train_tensor = torch.from_numpy(train_latents)
+    medoid_tensor = torch.from_numpy(medoid_latents)
+    
+    nearest_indices = []
+    for i in range(0, len(medoid_tensor), batch_size):
+        batch = medoid_tensor[i:i+batch_size]
+        distances = torch.cdist(batch, train_tensor)
+        nearest_indices.append(distances.argmin(dim=1))
+    
+    return torch.cat(nearest_indices).numpy()
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--latents_train", required=True)
-    ap.add_argument("--latents_val", required=True)
-    ap.add_argument("--codebook", required=True)          # must contain 'z_medoid'
-    ap.add_argument("--out_codes_val", required=True)
-    ap.add_argument("--k", type=int, default=20)          # ↑ default 20
-    ap.add_argument("--sym", type=str, default="union")   # union > mutual per connettività
-    args = ap.parse_args()
+    parser = argparse.ArgumentParser(description="Assign validation samples to geodesic codebook")
+    parser.add_argument("--latents_train", required=True, help="Training latents file")
+    parser.add_argument("--latents_val", required=True, help="Validation latents file") 
+    parser.add_argument("--codebook", required=True, help="Codebook file (must contain 'z_medoid')")
+    parser.add_argument("--out_codes_val", required=True, help="Output validation codes file")
+    parser.add_argument("--k", type=int, default=20, help="k-NN graph parameter")
+    parser.add_argument("--sym", type=str, default="union", help="Graph symmetry (union/mutual)")
+    args = parser.parse_args()
 
-    # 1) Load
-    z_train = _load_latents(args.latents_train)   # (Ntr,D)
-    z_val   = _load_latents(args.latents_val)     # (Nva,D)
-    z_all   = np.concatenate([z_train, z_val], 0) # (Ntr+Nva,D)
-    Ntr, Nva = len(z_train), len(z_val)
+    # Load data
+    train_latents = load_latents(args.latents_train)
+    val_latents = load_latents(args.latents_val)
+    all_latents = np.concatenate([train_latents, val_latents], axis=0)
+    
+    num_train, num_val = len(train_latents), len(val_latents)
+    print(f"Loaded {num_train} training and {num_val} validation samples")
 
-    cb = _tload(args.codebook)
-    if "z_medoid" not in cb:
-        raise KeyError("codebook.pt must contain key 'z_medoid' (K,D).")
-    z_medoid = cb["z_medoid"].float().cpu().numpy()  # (K,D)
+    # Load codebook
+    codebook = load_tensor(args.codebook)
+    if "z_medoid" not in codebook:
+        raise KeyError("Codebook must contain 'z_medoid' key")
+    medoid_latents = codebook["z_medoid"].float().cpu().numpy()
+    print(f"Loaded codebook with {len(medoid_latents)} medoids")
 
-    # 2) Map medoids to train indices (avoid relying on medoid_indices)
-    src_train_idx = _map_medoids_to_train_indices(z_train, z_medoid)  # (K,)
-    # de-duplicate (più medoid potrebbero mappare allo stesso train idx)
-    uniq_src, inv = np.unique(src_train_idx, return_inverse=True)
-    print(f"[info] sources in train: {len(uniq_src)} unique nodes (from K={len(z_medoid)})")
+    # Map medoids to training indices for graph construction
+    medoid_train_indices = find_nearest_train_indices(train_latents, medoid_latents)
+    unique_sources, inverse_mapping = np.unique(medoid_train_indices, return_inverse=True)
+    print(f"Using {len(unique_sources)} unique source nodes for geodesic distances")
 
-    # 3) Build kNN graph with distance weights, union symmetry for connectivity
-    W, _ = build_knn_graph(z_all, k=args.k, sym=args.sym, metric="euclidean", mode="distance")
-    print(f"[info] joint graph: {W.shape[0]} nodes, {W.nnz//2} undirected edges (approx)")
+    # Build joint k-NN graph (training + validation)
+    graph, _ = build_knn_graph(all_latents, k=args.k, sym=args.sym, metric="euclidean", mode="distance")
+    print(f"Built k-NN graph: {graph.shape[0]} nodes, {graph.nnz//2} edges")
 
-    # 4) Connected components
-    n_comp, labels = connected_components(W, directed=False)
-    print(f"[info] connected components: {n_comp}")
+    # Analyze graph connectivity
+    num_components, component_labels = connected_components(graph, directed=False)
+    print(f"Graph has {num_components} connected components")
 
-    # Component coverage: per componente, c'è almeno una sorgente?
-    comp_has_src = np.zeros(n_comp, dtype=bool)
-    comp_ids_src = labels[uniq_src]             # sorgenti sono in blocco train (0..Ntr-1)
-    comp_has_src[np.unique(comp_ids_src)] = True
+    # Check which components contain source nodes
+    source_components = component_labels[unique_sources]
+    components_with_sources = np.zeros(num_components, dtype=bool)
+    components_with_sources[np.unique(source_components)] = True
 
-    # 5) Geodesic assignment: per ogni sorgente unica, run Dijkstra singola sorgente
-    INF = np.inf
-    D_val_all = np.full((len(uniq_src), Nva), INF, dtype=np.float32)
-    for i, s in enumerate(uniq_src.tolist()):
-        d = dijkstra_single_source(W, source=s)     # (Ntr+Nva,)
-        D_val_all[i] = d[Ntr:]                      # solo nodi val
+    # Compute geodesic distances from each source to all validation nodes
+    distances_to_val = np.full((len(unique_sources), num_val), np.inf, dtype=np.float32)
+    
+    for i, source_idx in enumerate(unique_sources):
+        all_distances = dijkstra_single_source(graph, source=source_idx)
+        distances_to_val[i] = all_distances[num_train:]  # Extract validation distances
 
-    # 6) Per nodi val in componenti senza sorgenti -> fallback euclideo
-    comp_ids_val = labels[Ntr:]                     # (Nva,)
-    mask_no_src = ~comp_has_src[comp_ids_val]       # (Nva,)
-    d_euc = None
-    if mask_no_src.any():
-        print(f"[warn] {mask_no_src.sum()} val nodes in components with NO source. Using EUCLIDEAN fallback for them.")
-        d_euc = torch.cdist(torch.from_numpy(z_val[mask_no_src]),
-                            torch.from_numpy(z_medoid)).argmin(dim=1).cpu().numpy()
+    # Handle validation nodes in components without sources (Euclidean fallback)
+    val_component_labels = component_labels[num_train:]
+    nodes_without_sources = ~components_with_sources[val_component_labels]
+    
+    if nodes_without_sources.any():
+        num_fallback = nodes_without_sources.sum()
+        print(f"Warning: {num_fallback} validation nodes need Euclidean fallback")
+        
+        # Compute Euclidean distances for fallback
+        isolated_val = val_latents[nodes_without_sources]
+        euclidean_assignments = torch.cdist(
+            torch.from_numpy(isolated_val),
+            torch.from_numpy(medoid_latents)
+        ).argmin(dim=1).numpy()
 
-    # 7) Geodesic argmin per i nodi coperti
-    geo_argmin = D_val_all.argmin(axis=0)           # (Nva,) indice nella lista uniq_src
+    # Assign each validation node to nearest medoid
+    geodesic_assignments = distances_to_val.argmin(axis=0)
+    
+    # Map back to original medoid indices
+    source_to_medoid = np.array([np.where(inverse_mapping == j)[0][0] 
+                                for j in range(len(unique_sources))], dtype=int)
+    final_codes = source_to_medoid[geodesic_assignments]
 
-    # 8) Costruisci vettore finale dei codici (0..K-1) allineati a z_medoid
-    uniq_to_medoid = np.array([np.where(inv==j)[0][0] for j in range(len(uniq_src))], dtype=np.int64)
-    codes_val = uniq_to_medoid[geo_argmin]
+    # Apply Euclidean fallback where needed
+    if nodes_without_sources.any():
+        final_codes[nodes_without_sources] = euclidean_assignments
 
-    # 9) Inserisci fallback euclideo dove non c'è copertura
-    if mask_no_src.any():
-        codes_val[mask_no_src] = d_euc.astype(np.int64)
+    # Save results
+    np.save(args.out_codes_val, final_codes.astype(np.int32))
+    print(f"Saved validation codes to {args.out_codes_val}")
 
-    np.save(args.out_codes_val, codes_val.astype(np.int32))
-    print(f"[done] Saved geodesic assignments for {Nva} val samples -> {args.out_codes_val}")
 
 if __name__ == "__main__":
     main()
