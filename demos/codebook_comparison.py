@@ -26,7 +26,7 @@ def parse_args():
         "--config",
         type=str,
         default="test2",
-        choices=["test1", "test2", "fashion_k1024"],
+        choices=["test1", "test2"],
         help="Configuration to use (default: test2)"
     )
     return parser.parse_args()
