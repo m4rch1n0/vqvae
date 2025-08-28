@@ -1,0 +1,12 @@
+{
+  "euclidean": {
+    "num_samples": 16,
+    "valid_samples": 50000,
+    "quantization_error": 0.9036875367164612
+  },
+  "geodesic": {
+    "num_samples": 16,
+    "valid_samples": 31336,
+    "quantization_error": 1.636749029159546
+  }
+}
