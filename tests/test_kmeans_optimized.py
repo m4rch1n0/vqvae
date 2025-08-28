@@ -87,7 +87,7 @@ class TestFitKmedoidsOptimized:
         W = complete_graph(10)
         K = 3
         
-        medoids, assign, qe = fit_kmedoids_optimized(W, K=K, init="kpp", seed=42, verbose=False)
+        medoids, assign, qe = fit_kmedoids_optimized(W, K=K, init="kpp", seed=42)
         
         # Check output shapes and types
         assert medoids.shape == (K,)
@@ -111,8 +111,8 @@ class TestFitKmedoidsOptimized:
         W = complete_graph(15)
         K = 4
         
-        medoids_kpp, assign_kpp, qe_kpp = fit_kmedoids_optimized(W, K=K, init="kpp", seed=42, verbose=False)
-        medoids_rand, assign_rand, qe_rand = fit_kmedoids_optimized(W, K=K, init="random", seed=42, verbose=False)
+        medoids_kpp, assign_kpp, qe_kpp = fit_kmedoids_optimized(W, K=K, init="kpp", seed=42)
+        medoids_rand, assign_rand, qe_rand = fit_kmedoids_optimized(W, K=K, init="random", seed=42)
         
         # Both should have correct shapes
         assert medoids_kpp.shape == (K,)
@@ -126,7 +126,7 @@ class TestFitKmedoidsOptimized:
     def test_single_cluster(self):
         """Test with K=1."""
         W = triangle_graph()
-        medoids, assign, qe = fit_kmedoids_optimized(W, K=1, init="kpp", seed=42, verbose=False)
+        medoids, assign, qe = fit_kmedoids_optimized(W, K=1, init="kpp", seed=42)
         
         assert medoids.shape == (1,)
         assert assign.shape == (3,)
@@ -139,8 +139,8 @@ class TestFitKmedoidsOptimized:
         W = complete_graph(12)
         K = 3
         
-        medoids1, assign1, qe1 = fit_kmedoids_optimized(W, K=K, init="kpp", seed=42, verbose=False)
-        medoids2, assign2, qe2 = fit_kmedoids_optimized(W, K=K, init="kpp", seed=42, verbose=False)
+        medoids1, assign1, qe1 = fit_kmedoids_optimized(W, K=K, init="kpp", seed=42)
+        medoids2, assign2, qe2 = fit_kmedoids_optimized(W, K=K, init="kpp", seed=42)
         
         np.testing.assert_array_equal(medoids1, medoids2)
         np.testing.assert_array_equal(assign1, assign2)
@@ -151,7 +151,7 @@ class TestFitKmedoidsOptimized:
         z = random_latents(N=50, D=8, seed=1)
         W, _ = build_knn_graph(z, k=5, mode="distance", sym="mutual")
         
-        medoids, assign, qe = fit_kmedoids_optimized(W, K=5, init="kpp", seed=42, verbose=False)
+        medoids, assign, qe = fit_kmedoids_optimized(W, K=5, init="kpp", seed=42)
         
         assert len(medoids) <= 5  # May be fewer due to disconnected components
         assert assign.shape == (W.shape[0],)
@@ -166,7 +166,7 @@ class TestFitKmedoidsOptimized:
         W = triangle_graph()
         
         with pytest.raises(ValueError):
-            fit_kmedoids_optimized(W, K=2, init="invalid", seed=42, verbose=False)
+            fit_kmedoids_optimized(W, K=2, init="invalid", seed=42)
 
 
 class TestComponentFunctions:
@@ -206,7 +206,7 @@ class TestComponentFunctions:
         W = sparse.block_diag((W1, W2), format="csr", dtype=np.float32)
         
         # This should handle disconnected components gracefully
-        medoids, assign, qe = fit_kmedoids_optimized(W, K=2, init="kpp", seed=42, verbose=False)
+        medoids, assign, qe = fit_kmedoids_optimized(W, K=2, init="kpp", seed=42)
         
         assert len(medoids) <= 2
         assert assign.shape == (6,)

@@ -2,14 +2,15 @@
 
 Graph-based geodesic K-medoids clustering using sparse graph algorithms.
 
-**Signature:** `fit_kmedoids_optimized(W, K=512, init="kpp", seed=42, verbose=True)`
+**Signature:** `fit_kmedoids_optimized(W, K=512, init="kpp", seed=42)`
 
 **Arguments:**
 - `W`: sparse CSR matrix (N, N) with non-negative edge weights (geodesic distances)
 - `K`: number of clusters (medoids) to select
 - `init`: initialization method - `"kpp"` (K-means++) or `"random"`
 - `seed`: random seed for reproducible initialization
-- `verbose`: if True, prints progress information
+  
+Printed output: The function prints concise, essential progress information by default.
 
 **Returns:**
 - `medoids`: array (K,) of selected medoid indices

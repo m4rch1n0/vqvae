@@ -240,7 +240,7 @@ def build_and_save(config: Dict) -> Path:
     W_euclidean, info = build_knn_graph_auto(z, k=k, metric=metric, mode=mode, sym=sym)
     
     # Analyze graph connectivity
-    graph_stats = analyze_graph_connectivity(W_euclidean, verbose=True)
+    graph_stats = analyze_graph_connectivity(W_euclidean)
     
     # Extract largest connected component
     mask_lcc = largest_connected_component(W_euclidean)
@@ -276,7 +276,7 @@ def build_and_save(config: Dict) -> Path:
 
     print(f"Running K-medoids on Riemannian graph: K={K}, init={init}")
     medoids, assign_lcc, qe = fit_kmedoids_optimized(
-        W_riemannian, K=K, init=init, seed=seed, verbose=True
+        W_riemannian, K=K, init=init, seed=seed
     )
 
     # Map assignments back to original indices

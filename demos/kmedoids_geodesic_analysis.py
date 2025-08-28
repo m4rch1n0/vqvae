@@ -89,7 +89,7 @@ def evaluate_setup(
 
     for K in K_values:
         for init in inits:
-            medoids, assign, qe_geo = fit_kmedoids_optimized(W, K=K, init=init, seed=seed, verbose=False)
+            medoids, assign, qe_geo = fit_kmedoids_optimized(W, K=K, init=init, seed=seed)
             D = dijkstra_multi_source(W, medoids)  # (K, N)
             dmin = D[assign, np.arange(N)]
             finite_mask = np.isfinite(dmin)
@@ -215,17 +215,17 @@ def main() -> Path:
     out_dir = Path(f"demo_outputs/kmedoids_geodesic_{timestamp}")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    print("K-medoids Geodesic Demo")
-    print("Loading latents...")
+    print("[demo] K-medoids Geodesic Demo")
+    print("[demo] Loading latents...")
     z = load_latents(LATENTS_PATH)
     y = load_labels(LABELS_PATH)
     N, D = z.shape
-    print(f"Loaded {N} vectors (dim={D}), labels={'yes' if y is not None else 'no'}")
+    print(f"[demo] Loaded {N} vectors (dim={D}), labels={'yes' if y is not None else 'no'}")
 
-    print(f"Building k-NN graph: k={K_GRAPH}, sym={GRAPH_SYM}")
+    print(f"[demo] Building k-NN graph: k={K_GRAPH}, sym={GRAPH_SYM}")
     W_euc, _ = build_knn_graph(z, k=K_GRAPH, metric="euclidean", mode="distance", sym=GRAPH_SYM)
 
-    print("Evaluating geodesic k-medoids on Euclidean-weight graph...")
+    print("[demo] Evaluating geodesic k-medoids on Euclidean-weight graph...")
     metrics_all = evaluate_setup(W_euc, K_VALUES, INITS, seed=SEED, labels=y, out_dir=out_dir, tag="euclidean")
 
     import csv, json
@@ -243,7 +243,7 @@ def main() -> Path:
 
     plot_elbow(metrics_all, out_dir / "elbow.png", tag="euclidean")
 
-    print(f"Done. Outputs saved to: {out_dir}")
+    print(f"[demo] Done. Outputs saved to: {out_dir}")
     return out_dir
 
 

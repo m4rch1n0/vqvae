@@ -181,7 +181,7 @@ def largest_connected_component(W: sparse.csr_matrix) -> np.ndarray:
     return labels == lcc
 
 
-def analyze_graph_connectivity(W: sparse.csr_matrix, verbose: bool = True) -> Dict:
+def analyze_graph_connectivity(W: sparse.csr_matrix) -> Dict:
     """Analyze k-NN graph connectivity and return statistics."""
     N = W.shape[0]
     n_components, labels = connected_components(W, directed=False)
@@ -210,12 +210,11 @@ def analyze_graph_connectivity(W: sparse.csr_matrix, verbose: bool = True) -> Di
         "max_degree": degrees.max()
     }
     
-    if verbose:
-        print(f"Graph connectivity analysis:")
-        print(f"  Nodes: {N}, Edges: {W.nnz}, Avg degree: {avg_degree:.1f}")
-        print(f"  Components: {n_components}, Largest: {largest_size} ({100*connectivity_ratio:.1f}%)")
-        if n_components > 1:
-            print(f"Graph is disconnected - applying LCC filter")
+    print("Graph connectivity")
+    print(f"nodes={N} edges={W.nnz} avg_deg={avg_degree:.1f}")
+    print(f"components={n_components} largest={largest_size} ({100*connectivity_ratio:.1f}%)")
+    if n_components > 1:
+        print("disconnected -> will use LCC")
     
     return stats
 

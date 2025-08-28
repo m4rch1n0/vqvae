@@ -55,7 +55,7 @@ def build_and_save(config: Dict[str, Any]) -> Path:
     W, info = build_knn_graph_auto(z, k=k, metric=metric, mode=mode, sym=sym)
     
     # Analyze graph connectivity
-    graph_stats = analyze_graph_connectivity(W, verbose=True)
+    graph_stats = analyze_graph_connectivity(W)
     
     mask_lcc = largest_connected_component(W)
     if mask_lcc.sum() < W.shape[0]:
@@ -73,7 +73,7 @@ def build_and_save(config: Dict[str, Any]) -> Path:
     seed = int(config["quantize"]["seed"])
 
     medoids, assign_lcc, qe = fit_kmedoids_optimized(
-        W, K=K, init=init, seed=seed, verbose=True  # NO VERBOSE
+        W, K=K, init=init, seed=seed
     )
 
     # Map assignments back to original indices

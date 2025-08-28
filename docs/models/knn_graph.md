@@ -77,12 +77,10 @@ Returns boolean mask of nodes in the largest connected component.
 
 Analyzes k-NN graph connectivity and returns comprehensive statistics.
 
-**Signature:** `analyze_graph_connectivity(W, verbose=True)`
+**Signature:** `analyze_graph_connectivity(W)`
 
 **Arguments:**
 - `W`: sparse CSR adjacency matrix
-- `verbose`: if True, prints connectivity summary
-
 **Returns:**
 - `stats`: dict with connectivity statistics:
   - `n_nodes`: total number of nodes

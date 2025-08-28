@@ -9,7 +9,6 @@ from typing import List, Tuple
 import numpy as np
 from scipy import sparse
 from src.geo.geo_shortest_paths import dijkstra_multi_source, dijkstra_single_source
-from tqdm import tqdm
 
 
 def kpp_initialization_graph(W: sparse.spmatrix, K: int, seed: int = 42) -> List[int]:
@@ -36,9 +35,9 @@ def kpp_initialization_graph(W: sparse.spmatrix, K: int, seed: int = 42) -> List
     # Keep track of minimum distances to any center
     d_min = np.full(N, np.inf, dtype=np.float32)
     
-    print(f"K-means++ initialization: selecting {K} centers from {N} points")
+    print(f"[kpp] Selecting {K} centers among {N} nodes")
     
-    for i in tqdm(range(1, K), desc="Selecting centers"):
+    for i in range(1, K):
         # Update distances from new center
         last_center = centers[-1]
         distances_from_center = dijkstra_single_source(W, last_center, dtype=np.float32)
@@ -71,7 +70,7 @@ def kpp_initialization_graph(W: sparse.spmatrix, K: int, seed: int = 42) -> List
         
         centers.append(next_center)
     
-    print(f"Selected {len(centers)} centers using K-means++")
+    print(f"[kpp] Selected {len(centers)} centers")
     return centers
 
 
@@ -92,7 +91,7 @@ def assign_points_to_medoids(W: sparse.spmatrix, medoids: np.ndarray) -> np.ndar
     N = W.shape[0]
     K = len(medoids)
     
-    print(f"Computing assignments: {N} points to {K} medoids")
+    print(f"[assign] {N} points to {K} medoids")
     
     # Compute distances from all medoids to all points in one shot
     distances_from_medoids = dijkstra_multi_source(W, medoids, dtype=np.float32)
@@ -102,7 +101,7 @@ def assign_points_to_medoids(W: sparse.spmatrix, medoids: np.ndarray) -> np.ndar
     
     # Count assignments per cluster
     cluster_counts = np.bincount(assign, minlength=K)
-    print(f"Cluster sizes: min={cluster_counts.min()}, max={cluster_counts.max()}, mean={cluster_counts.mean():.1f}")
+    print(f"[assign] sizes min={cluster_counts.min()}, max={cluster_counts.max()}, mean={cluster_counts.mean():.1f}")
     
     return assign
 
@@ -144,7 +143,6 @@ def fit_kmedoids_optimized(
     K: int = 512,
     init: str = "kpp",
     seed: int = 42,
-    verbose: bool = True
 ) -> Tuple[np.ndarray, np.ndarray, float]:
     """
     Graph-based geodesic K-medoids clustering.
@@ -157,16 +155,13 @@ def fit_kmedoids_optimized(
         K: Number of clusters
         init: Initialization method ("kpp" for K-means++, "random" for random)
         seed: Random seed for reproducibility
-        verbose: Whether to print progress information
 
     Returns:
         Tuple of (medoid_indices, assignments, quantization_error)
     """
     N = W.shape[0]
     
-    if verbose:
-        print(f"Optimized K-medoids clustering: {N} points, {K} clusters")
-        print(f"Graph: {W.nnz} edges ({W.nnz/N:.1f} avg degree)")
+    print(f"[kmedoids] N={N}, K={K}, edges={W.nnz}, avg_deg={W.nnz/max(1,N):.1f}")
     
     # Initialize medoids
     if init == "kpp":
@@ -183,9 +178,7 @@ def fit_kmedoids_optimized(
     # Compute quantization error
     qe = compute_quantization_error(W, medoids, assign)
     
-    if verbose:
-        print(f"K-medoids completed: {len(medoids)} clusters, {N} points")
-        print(f"Quantization error: {qe:.3f}")
+    print(f"[kmedoids] Done: clusters={len(medoids)}, qe={qe:.3f}")
     
     return medoids, assign, qe
 
@@ -195,7 +188,6 @@ def fit_kmedoids_with_connectivity_check(
     K: int = 512,
     init: str = "kpp",
     seed: int = 42,
-    verbose: bool = True
 ) -> Tuple[np.ndarray, np.ndarray, float, dict]:
     """
     Fit K-medoids with connectivity analysis.
@@ -220,11 +212,10 @@ def fit_kmedoids_with_connectivity_check(
         "largest_component_size": np.bincount(labels).max() if n_components > 0 else N
     }
     
-    if verbose:
-        print(f"Graph analysis: {n_components} components, largest has {metadata['largest_component_size']} nodes")
+    print(f"[graph] components={n_components}, largest={metadata['largest_component_size']}")
     
     # Run optimized clustering
-    medoids, assign, qe = fit_kmedoids_optimized(W, K=K, init=init, seed=seed, verbose=verbose)
+    medoids, assign, qe = fit_kmedoids_optimized(W, K=K, init=init, seed=seed)
     
     # Add performance metadata
     metadata.update({
