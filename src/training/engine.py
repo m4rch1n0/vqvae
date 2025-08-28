@@ -6,6 +6,7 @@ from tqdm import tqdm
 
 from src.models.vae import VAE
 from src.utils.latents import save_latents
+from src.eval.metrics import psnr as psnr_metric, ssim_simple
 
 
 class TrainingEngine:
@@ -19,39 +20,94 @@ class TrainingEngine:
         self.optimizer = optimizer
         self.device = device
 
-    def _run_epoch(self, loader: DataLoader, train: bool, epoch: int, num_epochs: int, beta: float, grad_clip_max_norm: float = 0.0) -> Tuple[float, float, float]:
-        """Run a single epoch over a DataLoader and return averaged metrics."""
+    def run_epoch(self, loader: DataLoader, train: bool, epoch: int, num_epochs: int, beta: float, grad_clip_max_norm: float = 0.0, global_step_start: int = 0) -> Tuple[float, float, float, int, float, float]:
+        """Run a single epoch and return (loss, recon, kl, global_step, psnr, ssim).
+
+        PSNR/SSIM are computed only during validation (train=False), otherwise zeros.
+        """
         self.model.train() if train else self.model.eval()
         total, total_recon, total_kl = 0.0, 0.0, 0.0
         steps = 0
         desc = "Train" if train else "Val"
         pbar = tqdm(loader, desc=f"{desc} [{epoch}/{num_epochs}]")
+        global_step = int(global_step_start)
+        # Validation helpers
+        apply_sigmoid = (getattr(self.model, 'recon_loss', 'mse') == 'bce') or getattr(self.model, 'mse_use_sigmoid', True)
+        val_psnr_sum = 0.0
+        val_ssim_sum = 0.0
+        val_count = 0
+        norm_module = None
+        if not train:
+            from torchvision import transforms as T
+            def find_normalize(t):
+                if t is None:
+                    return None
+                if isinstance(t, T.Normalize):
+                    return t
+                sub = getattr(t, 'transforms', None)
+                if isinstance(sub, (list, tuple)):
+                    for s in sub:
+                        n = find_normalize(s)
+                        if n is not None:
+                            return n
+                nested = getattr(t, 'transform', None)
+                if nested is not None:
+                    return find_normalize(nested)
+                return None
+            norm_module = find_normalize(getattr(loader.dataset, 'transform', None))
+            def unnormalize(x):
+                if norm_module is None:
+                    return x
+                mean = torch.as_tensor(norm_module.mean, device=x.device).view(1, -1, 1, 1)
+                std  = torch.as_tensor(norm_module.std, device=x.device).view(1, -1, 1, 1)
+                return x * std + mean
         for x, _ in pbar:
             x = x.to(self.device)
             if train:
                 x_logits, mu, logvar, _ = self.model(x)
-                loss, recon, kl = self.model.loss(x, x_logits, mu, logvar, beta=beta)
+                loss, recon, kl = self.model.loss(x, x_logits, mu, logvar, beta=beta, step=global_step)
                 self.optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 if grad_clip_max_norm and grad_clip_max_norm > 0:
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=float(grad_clip_max_norm))
                 self.optimizer.step()
+                global_step += 1
             else:
                 with torch.no_grad():
                     x_logits, mu, logvar, _ = self.model(x)
-                    loss, recon, kl = self.model.loss(x, x_logits, mu, logvar, beta=beta)
+                    loss, recon, kl = self.model.loss(x, x_logits, mu, logvar, beta=beta, step=global_step)
+                    # Build image-space tensors for metrics
+                    x_rec = torch.sigmoid(x_logits) if apply_sigmoid else x_logits
+                    x_gt = x
+                    if norm_module is not None:
+                        x_gt = unnormalize(x_gt)
+                        x_rec = unnormalize(x_rec)
+                    x_gt = x_gt.clamp(0, 1)
+                    x_rec = x_rec.clamp(0, 1)
+                    bs = x.size(0)
+                    val_psnr_sum += psnr_metric(x_rec, x_gt) * bs
+                    val_ssim_sum += ssim_simple(x_rec, x_gt) * bs
+                    val_count += bs
 
             total += float(loss.item())
             total_recon += float(recon.item())
             total_kl += float(kl.item())
             steps += 1
-            pbar.set_postfix({
+            postfix = {
                 'loss': f"{total/steps:.4f}",
                 'recon': f"{total_recon/steps:.4f}",
                 'kl': f"{total_kl/steps:.4f}",
-            })
+            }
+            if not train and val_count > 0:
+                postfix.update({
+                    'psnr': f"{(val_psnr_sum/max(1, val_count)):.2f}",
+                    'ssim': f"{(val_ssim_sum/max(1, val_count)):.4f}",
+                })
+            pbar.set_postfix(postfix)
 
-        return total/steps, total_recon/steps, total_kl/steps
+        avg_psnr = (val_psnr_sum / max(1, val_count)) if not train else 0.0
+        avg_ssim = (val_ssim_sum / max(1, val_count)) if not train else 0.0
+        return total/steps, total_recon/steps, total_kl/steps, global_step, float(avg_psnr), float(avg_ssim)
 
     def train(
         self,
@@ -84,8 +140,8 @@ class TrainingEngine:
             current_beta = beta * min(1.0, epoch / kl_anneal_epochs) if kl_anneal_epochs > 0 else beta
 
             print(f"Epoch {epoch}/{num_epochs} (beta={current_beta:.4f})")
-            train_loss, train_recon, train_kl = self._run_epoch(train_loader, train=True, epoch=epoch, num_epochs=num_epochs, beta=current_beta, grad_clip_max_norm=grad_clip_max_norm)
-            val_loss, val_recon, val_kl = self._run_epoch(val_loader, train=False, epoch=epoch, num_epochs=num_epochs, beta=current_beta, grad_clip_max_norm=0.0)
+            train_loss, train_recon, train_kl, global_step, _, _ = self.run_epoch(train_loader, train=True, epoch=epoch, num_epochs=num_epochs, beta=current_beta, grad_clip_max_norm=grad_clip_max_norm, global_step_start=(locals().get('global_step', 0) or 0))
+            val_loss, val_recon, val_kl, _, val_psnr, val_ssim = self.run_epoch(val_loader, train=False, epoch=epoch, num_epochs=num_epochs, beta=current_beta, grad_clip_max_norm=0.0, global_step_start=global_step)
 
             # Infer number of pixels once (C*H*W) for per-pixel metrics
             if num_pixels is None:
@@ -102,6 +158,8 @@ class TrainingEngine:
                     'val_recon': val_recon,
                     'val_kl': val_kl,
                     'beta': current_beta,
+                    'val_psnr': val_psnr,
+                    'val_ssim': val_ssim,
                 }
                 if num_pixels and num_pixels > 0:
                     metrics.update({
@@ -158,7 +216,7 @@ class TrainingEngine:
                 x_rec = x_logits
 
         # Attempt to detect Normalize(mean, std) in dataset transform and invert it for visualization
-        def _find_normalize(t):
+        def find_normalize(t):
             if t is None:
                 return None
             if isinstance(t, T.Normalize):
@@ -167,25 +225,25 @@ class TrainingEngine:
             sub = getattr(t, 'transforms', None)
             if isinstance(sub, (list, tuple)):
                 for s in sub:
-                    n = _find_normalize(s)
+                    n = find_normalize(s)
                     if n is not None:
                         return n
             # Fallback: nested attr named 'transform'
             nested = getattr(t, 'transform', None)
             if nested is not None:
-                return _find_normalize(nested)
+                return find_normalize(nested)
             return None
 
-        norm = _find_normalize(getattr(val_loader.dataset, 'transform', None))
-        def _unnormalize(img_batch, normalize_module):
+        norm = find_normalize(getattr(val_loader.dataset, 'transform', None))
+        def unnormalize(img_batch, normalize_module):
             if normalize_module is None:
                 return img_batch
             mean = torch.as_tensor(normalize_module.mean, device=img_batch.device).view(1, -1, 1, 1)
             std = torch.as_tensor(normalize_module.std, device=img_batch.device).view(1, -1, 1, 1)
             return img_batch * std + mean
 
-        x_disp = _unnormalize(x, norm).clamp(0, 1)
-        x_rec_disp = _unnormalize(x_rec, norm).clamp(0, 1)
+        x_disp = unnormalize(x, norm).clamp(0, 1)
+        x_rec_disp = unnormalize(x_rec, norm).clamp(0, 1)
 
         grid = vutils.make_grid(torch.cat([x_disp[:8], x_rec_disp[:8]], dim=0), nrow=8)
         img_path = output_dir / 'recon_grid.png'

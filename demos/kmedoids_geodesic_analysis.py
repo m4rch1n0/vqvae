@@ -22,9 +22,9 @@ from sklearn.decomposition import PCA
 from sklearn.metrics import normalized_mutual_info_score, adjusted_rand_score
 
 
-from src.geo.knn_graph import build_knn_graph
+from src.geo.knn_graph_optimized import build_knn_graph
 from src.geo.geo_shortest_paths import dijkstra_multi_source
-from src.geo.kmeans_precomputed import fit_kmedoids_graph
+from src.geo.kmeans_optimized import fit_kmedoids_optimized
 
 
 def load_latents(latent_path: Path) -> np.ndarray:
@@ -89,11 +89,12 @@ def evaluate_setup(
 
     for K in K_values:
         for init in inits:
-            medoids, assign = fit_kmedoids_graph(W, K=K, init=init, seed=seed)
+            medoids, assign, qe_geo = fit_kmedoids_optimized(W, K=K, init=init, seed=seed, verbose=False)
             D = dijkstra_multi_source(W, medoids)  # (K, N)
             dmin = D[assign, np.arange(N)]
             finite_mask = np.isfinite(dmin)
-            qe_geo_finite = float(np.sum((dmin[finite_mask]) ** 2)) if finite_mask.any() else float('inf')
+            
+            qe_geo_finite = qe_geo if np.isfinite(qe_geo) else float('inf')
             finite_fraction = float(finite_mask.mean())
 
             purity = float('nan')

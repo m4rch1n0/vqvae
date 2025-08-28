@@ -107,7 +107,7 @@ Direct comparison of geodesic vs Euclidean quantization methods for post-hoc VQ-
 **Methodology:**
 1. Load pre-trained VAE model and latent representations (N=10000, dim=16)
 2. Build Euclidean codebook: `sklearn.KMeans(K=64)` 
-3. Build geodesic codebook: k-NN graph + `fit_kmedoids_precomputed(K=64)`
+3. Build geodesic codebook: k-NN graph + `fit_kmedoids_optimized(K=64)`
 4. Quantize latents using both codebooks
 5. Compare VAE reconstruction quality via decoder MSE
 

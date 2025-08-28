@@ -92,7 +92,7 @@ Riemannian Metric (`src/geo/riemannian_metric.py`)
 - Computes decoder-induced Riemannian distances using Jacobian-vector products
 - Formula: $L_{ij} \approx 0.5 \cdot (\|J(z_i)(z_j - z_i)\|_2 + \|J(z_j)(z_j - z_i)\|_2)$
 
-k-NN Graph (`src/geo/knn_graph.py`)  
+k-NN Graph (`src/geo/knn_graph_optimized.py`)  
 - Builds connectivity graphs in latent space
 - Supports both Euclidean and Riemannian edge weights
 
@@ -100,9 +100,10 @@ Geodesic Shortest Paths (`src/geo/geo_shortest_paths.py`)
 - Dijkstra's algorithm for multi-source shortest paths
 - Efficient computation on sparse graphs
 
-K-medoids Clustering (`src/geo/kmeans_precomputed.py`)
-- Geodesic K-medoids using precomputed distance matrices
-- Chunked computation for memory-efficient large graph processing
+K-medoids Clustering (`src/geo/kmeans_optimized.py`)
+- Graph-based geodesic K-medoids without full distance matrix computation
+- Iterative Dijkstra-based initialization and multi-source assignment
+- Scales to large datasets through algorithmic efficiency
 
 Codebook Builder (`src/training/build_codebook.py`)
 - Post-hoc discrete codebook construction via geodesic clustering

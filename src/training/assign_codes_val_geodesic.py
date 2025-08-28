@@ -1,6 +1,6 @@
 import argparse, numpy as np, torch
 from scipy.sparse.csgraph import connected_components
-from src.geo.knn_graph import build_knn_graph
+from src.geo.knn_graph_optimized import build_knn_graph
 from src.geo.geo_shortest_paths import dijkstra_single_source
 
 def _tload(path):

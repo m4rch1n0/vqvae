@@ -2,7 +2,7 @@ import numpy as np
 import scipy.sparse as sp
 import pytest
 
-from src.geo.knn_graph import build_knn_graph
+from src.geo.knn_graph_optimized import build_knn_graph
 
 def random_latents(N=200, D=8, scale=1.0, seed=0):
     r = np.random.RandomState(seed)

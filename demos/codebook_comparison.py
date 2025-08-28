@@ -13,8 +13,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 
-from src.geo.kmeans_precomputed import fit_kmedoids_precomputed
-from src.geo.knn_graph import build_knn_graph, largest_connected_component
+from src.geo.kmeans_optimized import fit_kmedoids_optimized
+from src.geo.knn_graph_optimized import build_knn_graph, largest_connected_component
 from src.geo.geo_shortest_paths import dijkstra_multi_source
 from src.models.vae import VAE
 
@@ -94,7 +94,7 @@ def build_geodesic_codebook(z: np.ndarray, K: int, k_graph: int = 10, seed: int 
         z_lcc = z
         mask_lcc = np.ones(len(z), dtype=bool)
     
-    medoids, assign_lcc, _ = fit_kmedoids_precomputed(W, K=K, init="kpp", seed=seed, chunk_size=1000)
+    medoids, assign_lcc, _ = fit_kmedoids_optimized(W, K=K, init="kpp", seed=seed, verbose=False)
     
     assign = np.full(len(z), fill_value=-1, dtype=np.int32)
     assign[mask_lcc] = assign_lcc

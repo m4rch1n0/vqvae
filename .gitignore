@@ -18,8 +18,8 @@ env/
 # Data and experiment artifacts
 data/
 
-#/experiments/
-#/demo_outputs/
+/experiments/
+demo_outputs/
 mlruns/
 outputs/
 **/.hydra/

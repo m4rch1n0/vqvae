@@ -61,6 +61,10 @@ def main(cfg) -> None:
         output_image_size=int(getattr(vae_cfg, 'output_image_size', 28)),
         norm_type=str(getattr(vae_cfg, 'norm_type', 'none')),
         mse_use_sigmoid=bool(getattr(vae_cfg, 'mse_use_sigmoid', True)),
+        free_bits_default=float(getattr(vae_cfg, 'free_bits', 0.5)),
+        capacity_max_default=float(getattr(vae_cfg, 'capacity_max', 15.0)),
+        capacity_anneal_steps_default=int(getattr(vae_cfg, 'capacity_anneal_steps', 50000)),
+        capacity_mode_default=str(getattr(vae_cfg, 'capacity_mode', 'abs')),
     ).to(device)
 
     # Optimizer

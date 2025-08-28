@@ -8,8 +8,8 @@ import numpy as np
 import torch
 from scipy import sparse
 
-from src.geo.kmeans_precomputed import fit_kmedoids_precomputed
-from src.geo.knn_graph import build_knn_graph, largest_connected_component
+from src.geo.kmeans_optimized import fit_kmedoids_optimized
+from src.geo.knn_graph_optimized import build_knn_graph_auto, largest_connected_component, analyze_graph_connectivity
 
 
 def _load_latents(path: Path) -> torch.Tensor:
@@ -53,10 +53,10 @@ def build_and_save(config: Dict[str, Any]) -> Path:
     sym = str(config["graph"]["sym"])
     mode = str(config["graph"]["mode"])
 
-    W, info = build_knn_graph(z, k=k, metric=metric, mode=mode, sym=sym)
-    # For undirected graphs, nnz counts both directions; approximate unique edges as nnz/2
-    approx_undirected_edges = int(W.nnz // 2)
-    print(f"Built k-NN graph: k={k}, edges~{approx_undirected_edges}")
+    W, info = build_knn_graph_auto(z, k=k, metric=metric, mode=mode, sym=sym)
+    
+    # Analyze graph connectivity
+    graph_stats = analyze_graph_connectivity(W, verbose=True)
     
     mask_lcc = largest_connected_component(W)
     if mask_lcc.sum() < W.shape[0]:
@@ -73,8 +73,8 @@ def build_and_save(config: Dict[str, Any]) -> Path:
     init = str(config["quantize"]["init"])
     seed = int(config["quantize"]["seed"])
 
-    medoids, assign_lcc, distance_matrix = fit_kmedoids_precomputed(
-        W, K=K, init=init, seed=seed, chunk_size=1000
+    medoids, assign_lcc, qe = fit_kmedoids_optimized(
+        W, K=K, init=init, seed=seed, verbose=True  # NO VERBOSE
     )
 
     # Map assignments back to original indices
@@ -94,8 +94,6 @@ def build_and_save(config: Dict[str, Any]) -> Path:
     torch.save(codebook, out_dir / "codebook.pt")
     np.save(out_dir / "codes.npy", assign)
 
-    dmin = distance_matrix[medoids].min(axis=0)
-    qe = float(np.sum(dmin[np.isfinite(dmin)] ** 2))
     print(f"Quantization error: {qe:.3f}")
     print(f"Saved artifacts to: {out_dir}")
     
