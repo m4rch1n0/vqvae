@@ -2,9 +2,10 @@
 Optimized k-NN graph construction with automatic sklearn/FAISS selection.
 
 Automatically chooses the fastest method based on dataset size:
-- sklearn for small-medium datasets (< 50k samples)
+- sklearn for small-medium datasets (< 50k samples) 
 - FAISS for large datasets (>= 50k samples)
 
+Both methods provide exact results for supported metrics.
 Full documentation: see docs/models/knn_graph.md
 """
 from typing import Tuple, Dict, Optional
@@ -12,7 +13,13 @@ import numpy as np
 from scipy import sparse
 from sklearn.neighbors import NearestNeighbors
 from scipy.sparse.csgraph import connected_components
-import faiss
+
+try:
+    import faiss
+    _FAISS_AVAILABLE = True
+except ImportError:
+    faiss = None
+    _FAISS_AVAILABLE = False
 
 
 def build_knn_graph_sklearn(z: np.ndarray, k: int = 10, metric: str = "euclidean", 
@@ -63,43 +70,39 @@ def build_knn_graph_sklearn(z: np.ndarray, k: int = 10, metric: str = "euclidean
 def build_knn_graph_faiss(z: np.ndarray, k: int = 10, metric: str = "euclidean",
                          mode: str = "distance", sym: str = "mutual") -> Tuple[sparse.csr_matrix, Dict[str, np.ndarray]]:
     """Build k-NN graph using FAISS for large datasets."""
+    if not _FAISS_AVAILABLE:
+        raise RuntimeError("FAISS not available, falling back to sklearn")
+    
     N, D = z.shape
     
-    # Create FAISS index
+    # Create FAISS index and prepare data
     if metric == "euclidean":
         index = faiss.IndexFlatL2(D)
+        z_faiss = np.ascontiguousarray(z.astype(np.float32))
+        index.add(z_faiss)
+        k_search = min(k + 1, N)
+        distances, indices = index.search(z_faiss, k_search)
+        
     elif metric == "cosine":
-        index = faiss.IndexFlatIP(D)  # Inner product for cosine after normalization
-        z = z / (np.linalg.norm(z, axis=1, keepdims=True) + 1e-8)  # Normalize for cosine
+        # Normalize for cosine similarity
+        z_norm = z / (np.linalg.norm(z, axis=1, keepdims=True) + 1e-8)
+        z_faiss = np.ascontiguousarray(z_norm.astype(np.float32))
+        
+        index = faiss.IndexFlatIP(D)  # Inner product index
+        index.add(z_faiss)
+        k_search = min(k + 1, N)
+        similarities, indices = index.search(z_faiss, k_search)
+        
+        # Convert similarities to distances: distance = 1 - similarity
+        distances = 1.0 - similarities
+        
     else:
-        raise ValueError(f"FAISS metric {metric} not implemented")
+        raise ValueError(f"FAISS metric '{metric}' not supported. Use 'euclidean' or 'cosine'.")
     
-    # Ensure data is contiguous and float32
-    z_faiss = np.ascontiguousarray(z.astype(np.float32))
-    index.add(z_faiss)
-    
-    # Search for k+1 neighbors (including self)
-    k_search = min(k + 1, N)
-    distances, indices = index.search(z_faiss, k_search)
-    
-    # Remove self-connections (first column should be self with distance 0)
-    if indices.shape[1] > 1:
-        # Check if first column is self-connections
-        if (indices[:, 0] == np.arange(N)).all():
-            distances = distances[:, 1:]  # Remove self
-            indices = indices[:, 1:]      # Remove self
-        else:
-            # Fallback: find and remove self-connections
-            self_mask = indices == np.arange(N)[:, None]
-            if self_mask.any():
-                # Remove self-connections by masking
-                for i in range(N):
-                    self_idx = np.where(self_mask[i])[0]
-                    if len(self_idx) > 0:
-                        # Remove first self-connection found
-                        remove_idx = self_idx[0]
-                        distances[i] = np.concatenate([distances[i][:remove_idx], distances[i][remove_idx+1:]])
-                        indices[i] = np.concatenate([indices[i][:remove_idx], indices[i][remove_idx+1:]])
+    # Remove self-connections (first column should be self)
+    if indices.shape[1] > 1 and (indices[:, 0] == np.arange(N)).all():
+        distances = distances[:, 1:]  # Remove self-distances
+        indices = indices[:, 1:]      # Remove self-indices
     
     # Convert to CSR matrix
     actual_k = indices.shape[1]
@@ -144,14 +147,16 @@ def build_knn_graph_auto(z: np.ndarray, k: int = 10, metric: str = "euclidean",
     """
     N = z.shape[0]
     
-    # Determine method
+    # Determine method with automatic fallback
     if force_method == "sklearn":
         method = "sklearn"
     elif force_method == "faiss":
+        if not _FAISS_AVAILABLE:
+            raise RuntimeError("force_method='faiss' but FAISS not available")
         method = "faiss"
     else:
-        # Auto-select based on size
-        if N >= size_threshold:
+        # Auto-select: prefer FAISS for large datasets if available
+        if _FAISS_AVAILABLE and N >= size_threshold:
             method = "faiss"
         else:
             method = "sklearn"
@@ -225,29 +230,3 @@ def build_knn_graph(z: np.ndarray, k: int = 10, metric: str = "euclidean",
     automatic optimization based on dataset size.
     """
     return build_knn_graph_auto(z, k=k, metric=metric, mode=mode, sym=sym)
-
-
-if __name__ == "__main__":
-    """Test optimized k-NN graph construction."""
-    import time
-    
-    # Test with different sizes
-    test_sizes = [1000, 10000, 60000]
-    
-    for N in test_sizes:
-        print(f"\n🔹 Testing N={N}")
-        
-        # Generate test data
-        np.random.seed(42)
-        z = np.random.randn(N, 64).astype(np.float32)
-        
-        # Test auto method
-        start_time = time.time()
-        W, info = build_knn_graph_auto(z, k=10)
-        auto_time = time.time() - start_time
-        
-        # Analyze connectivity
-        stats = analyze_graph_connectivity(W)
-        
-        print(f"  Time: {auto_time:.2f}s")
-        print(f"  Edges: {W.nnz}, Connectivity: {100*stats['connectivity_ratio']:.1f}%")

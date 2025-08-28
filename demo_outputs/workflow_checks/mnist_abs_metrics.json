@@ -1,10 +1,10 @@
 {
   "dataset": "MNIST",
-  "psnr_abs_cont": 11.181328,
-  "psnr_abs_quant": 10.384617,
-  "psnr_cont_vs_quant": 14.359608,
-  "ssim_abs_cont": 0.381338,
-  "ssim_abs_quant": 0.257206,
-  "ssim_cont_vs_quant": 0.361544,
+  "psnr_abs_cont": 11.1716,
+  "psnr_abs_quant": 10.344913,
+  "psnr_cont_vs_quant": 14.418831,
+  "ssim_abs_cont": 0.379662,
+  "ssim_abs_quant": 0.244782,
+  "ssim_cont_vs_quant": 0.358585,
   "samples_evaluated": 10000
 }
