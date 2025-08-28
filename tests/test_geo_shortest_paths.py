@@ -6,7 +6,7 @@ from src.geo.geo_shortest_paths import (
     dijkstra_multi_source,
     dijkstra_single_source,
     distances_between,
-    _ensure_valid_graph,
+    ensure_valid_graph,
 )
 
 
@@ -106,13 +106,13 @@ def test_negative_weight_raises():
     W = line_graph(4, 1.0).tolil()
     W[1, 2] = -1.0; W[2, 1] = -1.0
     with pytest.raises(ValueError):
-        _ = _ensure_valid_graph(W.tocsr())
+        _ = ensure_valid_graph(W.tocsr())
 
 def test_non_square_raises():
     """Test that non-square matrices raise ValueError."""
     W = sparse.csr_matrix((3, 4), dtype=np.float32)
     with pytest.raises(ValueError):
-        _ = _ensure_valid_graph(W)
+        _ = ensure_valid_graph(W)
 
 def test_empty_sources_raises():
     """Test that empty source list raises ValueError."""

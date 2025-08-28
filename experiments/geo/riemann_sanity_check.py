@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from src.geo.knn_graph import build_knn_graph
+from src.geo.knn_graph_optimized import build_knn_graph
 from src.geo.riemannian_metric import edge_lengths_riemannian
 from src.models.vae import VAE
 

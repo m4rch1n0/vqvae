@@ -1,12 +1,12 @@
 seed: 42
 device: auto
-max_epochs: 30  
+max_epochs: 50  
 lr: 3e-4
 weight_decay: 1e-4
 log_interval: 100
 val_interval: 1
 early_stop: 0
-kl_anneal_epochs: 20
+kl_anneal_epochs: 25
 out_dir: ./experiments/vae
 save_latents: true
 mlflow_tracking_uri: ./experiments/mlruns

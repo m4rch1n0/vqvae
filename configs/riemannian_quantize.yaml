@@ -1,0 +1,28 @@
+# Riemannian Geodesic Quantization Configuration
+# True geodesic quantization using decoder-induced Riemannian edge weights
+
+data:
+  dataset: "fashion"  # mnist, fashion, cifar10
+  latents_path: "experiments/vae_fashion/latents_train/mu.pt"  # Use mu for smoother manifold
+
+model:
+  checkpoint_path: "experiments/vae_fashion/checkpoints/best.pt"
+
+graph:
+  k: 50           # High connectivity for good geodesic approximation
+  metric: "euclidean"  # Initial connectivity metric  
+  sym: "union"    # Union symmetry for better connectivity
+  mode: "distance"
+
+riemannian:
+  mode: "subset"     # "subset" for stratified sampling, "full" for all edges
+  max_edges: 5000    # Maximum edges to reweight in subset mode
+  batch_size: 512    # Batch size for Riemannian computation
+
+quantize:
+  K: 1024         # Codebook size (matching Fashion-MNIST experiments)
+  init: "kpp"     # K-means++ initialization
+  seed: 42
+
+out:
+  dir: "experiments/geo/codebook_fashion_riemannian_k1024"

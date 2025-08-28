@@ -9,8 +9,8 @@ from scipy import sparse
 from scipy.sparse.csgraph import dijkstra as csgraph_dijkstra
 
 
-# From knn_graph.py we expect W to be CSR, square and with all weights positive but for debug reasons we check here
-def _ensure_valid_graph(W: sparse.spmatrix) -> sparse.spmatrix:
+# From knn_graph_optimized.py we expect W to be CSR, square and with all weights positive but for debug reasons we check here
+def ensure_valid_graph(W: sparse.spmatrix) -> sparse.spmatrix:
     if not sparse.isspmatrix(W):
         raise TypeError("W must be a scipy sparse matrix")
     if W.shape[0] != W.shape[1]:
@@ -25,7 +25,7 @@ def dijkstra_multi_source(W: sparse.spmatrix, sources, directed: bool = False, u
     """Multi-source geodesic distances"""
     if len(sources) == 0:
         raise ValueError("sources must be a non-empty sequence of node indices")
-    W = _ensure_valid_graph(W)
+    W = ensure_valid_graph(W)
     sources = np.asarray(sources, dtype=int)
 
     if unweighted and W.nnz > 0:

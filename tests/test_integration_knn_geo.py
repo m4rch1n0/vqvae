@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from scipy import sparse
 
-from src.geo.knn_graph import build_knn_graph, largest_connected_component
+from src.geo.knn_graph_optimized import build_knn_graph, largest_connected_component
 from src.geo.geo_shortest_paths import (
     dijkstra_multi_source,
     dijkstra_single_source,

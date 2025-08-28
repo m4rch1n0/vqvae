@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from scipy.sparse.csgraph import connected_components, dijkstra
-from src.geo.knn_graph import build_knn_graph, largest_connected_component
+from src.geo.knn_graph_optimized import build_knn_graph, largest_connected_component
 from src.geo.riemannian_metric import edge_lengths_riemannian
 from src.models.vae import VAE
 

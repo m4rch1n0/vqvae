@@ -19,4 +19,4 @@ quantize:
   seed: 42
 
 system:
-  device: cpu
+  device: auto

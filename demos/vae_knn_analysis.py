@@ -28,7 +28,7 @@ from src.data import get_data_loaders
 from src.models.vae import VAE
 from src.utils.system import set_seed, get_device
 from src.training.engine import TrainingEngine
-from src.geo.knn_graph import build_knn_graph
+from src.geo.knn_graph_optimized import build_knn_graph
 from src.geo.geo_shortest_paths import dijkstra_multi_source
 
 

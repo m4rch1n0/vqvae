@@ -8,8 +8,6 @@ Euclidean nearest medoids to the precomputed geodesic codebook medoids, which is
 adequate for visualization (also i'm not sure about this, might give a try with)
 """
 
-from __future__ import annotations
-
 import argparse
 from pathlib import Path
 

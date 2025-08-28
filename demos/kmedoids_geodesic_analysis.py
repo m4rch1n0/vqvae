@@ -22,9 +22,9 @@ from sklearn.decomposition import PCA
 from sklearn.metrics import normalized_mutual_info_score, adjusted_rand_score
 
 
-from src.geo.knn_graph import build_knn_graph
+from src.geo.knn_graph_optimized import build_knn_graph
 from src.geo.geo_shortest_paths import dijkstra_multi_source
-from src.geo.kmeans_precomputed import fit_kmedoids_graph
+from src.geo.kmeans_optimized import fit_kmedoids_optimized
 
 
 def load_latents(latent_path: Path) -> np.ndarray:
@@ -89,11 +89,12 @@ def evaluate_setup(
 
     for K in K_values:
         for init in inits:
-            medoids, assign = fit_kmedoids_graph(W, K=K, init=init, seed=seed)
+            medoids, assign, qe_geo = fit_kmedoids_optimized(W, K=K, init=init, seed=seed)
             D = dijkstra_multi_source(W, medoids)  # (K, N)
             dmin = D[assign, np.arange(N)]
             finite_mask = np.isfinite(dmin)
-            qe_geo_finite = float(np.sum((dmin[finite_mask]) ** 2)) if finite_mask.any() else float('inf')
+            
+            qe_geo_finite = qe_geo if np.isfinite(qe_geo) else float('inf')
             finite_fraction = float(finite_mask.mean())
 
             purity = float('nan')
@@ -214,17 +215,17 @@ def main() -> Path:
     out_dir = Path(f"demo_outputs/kmedoids_geodesic_{timestamp}")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    print("K-medoids Geodesic Demo")
-    print("Loading latents...")
+    print("[demo] K-medoids Geodesic Demo")
+    print("[demo] Loading latents...")
     z = load_latents(LATENTS_PATH)
     y = load_labels(LABELS_PATH)
     N, D = z.shape
-    print(f"Loaded {N} vectors (dim={D}), labels={'yes' if y is not None else 'no'}")
+    print(f"[demo] Loaded {N} vectors (dim={D}), labels={'yes' if y is not None else 'no'}")
 
-    print(f"Building k-NN graph: k={K_GRAPH}, sym={GRAPH_SYM}")
+    print(f"[demo] Building k-NN graph: k={K_GRAPH}, sym={GRAPH_SYM}")
     W_euc, _ = build_knn_graph(z, k=K_GRAPH, metric="euclidean", mode="distance", sym=GRAPH_SYM)
 
-    print("Evaluating geodesic k-medoids on Euclidean-weight graph...")
+    print("[demo] Evaluating geodesic k-medoids on Euclidean-weight graph...")
     metrics_all = evaluate_setup(W_euc, K_VALUES, INITS, seed=SEED, labels=y, out_dir=out_dir, tag="euclidean")
 
     import csv, json
@@ -242,7 +243,7 @@ def main() -> Path:
 
     plot_elbow(metrics_all, out_dir / "elbow.png", tag="euclidean")
 
-    print(f"Done. Outputs saved to: {out_dir}")
+    print(f"[demo] Done. Outputs saved to: {out_dir}")
     return out_dir
 
 

@@ -13,8 +13,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 
-from src.geo.kmeans_precomputed import fit_kmedoids_precomputed
-from src.geo.knn_graph import build_knn_graph, largest_connected_component
+from src.geo.kmeans_optimized import fit_kmedoids_optimized
+from src.geo.knn_graph_optimized import build_knn_graph, largest_connected_component
 from src.geo.geo_shortest_paths import dijkstra_multi_source
 from src.models.vae import VAE
 
@@ -94,7 +94,7 @@ def build_geodesic_codebook(z: np.ndarray, K: int, k_graph: int = 10, seed: int 
         z_lcc = z
         mask_lcc = np.ones(len(z), dtype=bool)
     
-    medoids, assign_lcc, _ = fit_kmedoids_precomputed(W, K=K, init="kpp", seed=seed, chunk_size=1000)
+    medoids, assign_lcc, _ = fit_kmedoids_optimized(W, K=K, init="kpp", seed=seed)
     
     assign = np.full(len(z), fill_value=-1, dtype=np.int32)
     assign[mask_lcc] = assign_lcc
@@ -189,17 +189,17 @@ def main():
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     else:
         device = torch.device(config["experiment"]["device"])
-    print(f"Using device: {device}")
+    print(f"[demo] Using device: {device}")
     
     z = load_latents(latents_path).numpy()
     model = load_vae_model(checkpoint_path, device)
     N, D = z.shape
-    print(f"Loaded {N} latents (dim={D})")
+    print(f"[demo] Loaded {N} latents (dim={D})")
     
-    print(f"Building Euclidean codebook (K={K})...")
+    print(f"[demo] Building Euclidean codebook (K={K})...")
     centroids_euc, assign_euc = build_euclidean_codebook(z, K, seed)
     
-    print(f"Building geodesic codebook (K={K}, k_graph={k_graph})...")
+    print(f"[demo] Building geodesic codebook (K={K}, k_graph={k_graph})...")
     centroids_geo, assign_geo, W_lcc, mask_lcc, medoids_lcc = build_geodesic_codebook(
         z, K, k_graph, seed, 
         metric=config["graph"]["metric"], 
@@ -265,10 +265,10 @@ def main():
     with open(out_dir / "config.yaml", "w") as f:
         yaml.dump(config, f, default_flow_style=False, indent=2)
     
-    print(f"\nComparison Results (K={K}):")
-    print(f"Euclidean  - MSE: {recon_mse_euc:.6f}, Perplexity: {perp_euc:.2f}, QE: {qe_euc:.2f}")
-    print(f"Geodesic   - MSE: {recon_mse_geo:.6f}, Perplexity: {perp_geo:.2f}, QE: {qe_geo:.2f}")
-    print(f"Results saved to: {out_dir}")
+    print(f"\n[demo] Comparison (K={K}):")
+    print(f"[demo] Euclidean  MSE={recon_mse_euc:.6f}  PPL={perp_euc:.2f}  QE={qe_euc:.2f}")
+    print(f"[demo] Geodesic   MSE={recon_mse_geo:.6f}  PPL={perp_geo:.2f}  QE={qe_geo:.2f}")
+    print(f"[demo] Results saved to: {out_dir}")
     
     return out_dir
 
