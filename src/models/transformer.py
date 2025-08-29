@@ -1,4 +1,5 @@
-from typing import Optional, Tuple
+
+from typing import Tuple
 
 import torch
 import torch.nn as nn
@@ -6,6 +7,7 @@ import torch.nn.functional as F
 
 
 class CausalSelfAttention(nn.Module):
+    """Causal self-attention with optional dropout for autoregressive generation."""
     def __init__(self, embed_dim: int, num_heads: int, attn_dropout: float = 0.0, resid_dropout: float = 0.0):
         super().__init__()
         assert embed_dim % num_heads == 0, "embed_dim must be divisible by num_heads"
@@ -21,12 +23,14 @@ class CausalSelfAttention(nn.Module):
         self.register_buffer("mask", None, persistent=False)
 
     def _get_causal_mask(self, seq_len: int, device: torch.device) -> torch.Tensor:
+        # Cache causal mask to avoid recomputing for same sequence length
         if self.mask is None or self.mask.size(0) < seq_len:
             m = torch.tril(torch.ones((seq_len, seq_len), dtype=torch.bool, device=device))
             self.mask = m
         return self.mask[:seq_len, :seq_len]
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # Multi-head attention with causal masking for autoregressive generation
         B, T, C = x.shape
         qkv = self.qkv(x).view(B, T, 3, self.num_heads, self.head_dim).permute(2, 0, 3, 1, 4)
         q, k, v = qkv[0], qkv[1], qkv[2]
@@ -45,6 +49,7 @@ class CausalSelfAttention(nn.Module):
 
 
 class MLP(nn.Module):
+    """Feed-forward network with GELU activation and dropout."""
     def __init__(self, embed_dim: int, mlp_ratio: float = 4.0, dropout: float = 0.0):
         super().__init__()
         inner = int(mlp_ratio * embed_dim)
@@ -60,6 +65,7 @@ class MLP(nn.Module):
 
 
 class TransformerBlock(nn.Module):
+    """Standard transformer block with pre-norm architecture."""
     def __init__(self, embed_dim: int, num_heads: int, attn_dropout: float = 0.0, resid_dropout: float = 0.0, mlp_ratio: float = 4.0):
         super().__init__()
         self.ln1 = nn.LayerNorm(embed_dim)
@@ -68,12 +74,14 @@ class TransformerBlock(nn.Module):
         self.mlp = MLP(embed_dim, mlp_ratio, resid_dropout)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # Residual connections around attention and MLP with pre-norm
         x = x + self.attn(self.ln1(x))
         x = x + self.mlp(self.ln2(x))
         return x
 
 
 class GPTConfig:
+    """Configuration class for GPT-style transformer models."""
     def __init__(self,
                  vocab_size: int,
                  seq_len: int,
@@ -99,6 +107,7 @@ class GPTConfig:
 
 
 class GPT(nn.Module):
+    """GPT-style transformer for autoregressive sequence generation."""
     def __init__(self, config: GPTConfig):
         super().__init__()
         self.config = config
@@ -128,6 +137,7 @@ class GPT(nn.Module):
         self.apply(self._init_weights)
 
     def _init_weights(self, module: nn.Module) -> None:
+        # Initialize weights following GPT-2 style (normal distribution)
         if isinstance(module, nn.Linear):
             nn.init.normal_(module.weight, mean=0.0, std=0.02)
             if module.bias is not None:
@@ -135,7 +145,8 @@ class GPT(nn.Module):
         elif isinstance(module, nn.Embedding):
             nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
-    def forward(self, idx: torch.Tensor, *, labels: Optional[torch.Tensor] = None, classes: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+    def forward(self, idx: torch.Tensor, *, labels = None, classes = None) -> Tuple[torch.Tensor, torch.Tensor]:
+        # Forward pass with optional class conditioning and loss computation
         B, T = idx.shape
         assert T <= self.config.seq_len, "Sequence length exceeds model's maximum"
 
@@ -143,6 +154,7 @@ class GPT(nn.Module):
         x = self.token_emb(idx) + self.pos_emb(pos)
 
         if self.class_emb is not None and classes is not None:
+            # Add class embeddings for conditional generation
             class_tokens = self.class_emb(classes).unsqueeze(1)
             x = x + class_tokens
 
@@ -154,12 +166,14 @@ class GPT(nn.Module):
 
         loss = None
         if labels is not None:
+            # Compute cross-entropy loss for next-token prediction
             loss = F.cross_entropy(logits.view(-1, logits.size(-1)), labels.view(-1))
 
         return logits, loss
 
 
-def generate(model: 'GPT', idx: torch.Tensor, max_new_tokens: int, temperature: float = 1.0, top_k: Optional[int] = None, classes: Optional[torch.Tensor] = None) -> torch.Tensor:
+def generate(model: 'GPT', idx: torch.Tensor, max_new_tokens: int, temperature: float = 1.0, top_k = None, classes = None) -> torch.Tensor:
+    """Generate new tokens autoregressively using the trained transformer."""
     model.eval()
     for _ in range(max_new_tokens):
         idx_cond = idx[:, -model.config.seq_len:]
@@ -167,6 +181,7 @@ def generate(model: 'GPT', idx: torch.Tensor, max_new_tokens: int, temperature: 
             logits, _ = model(idx_cond, classes=classes)
             logits = logits[:, -1, :] / max(1e-8, temperature)
             if top_k is not None:
+                # Top-k sampling: only consider top k most likely tokens
                 v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
                 logits[logits < v[:, [-1]]] = -float('Inf')
             probs = F.softmax(logits, dim=-1)

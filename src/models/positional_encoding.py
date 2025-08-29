@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import torch
 import torch.nn as nn
 
@@ -22,8 +20,7 @@ class SinusoidalPositionalEncoding2D(nn.Module):
         return emb  # (N, dim)
 
     def forward(self, H: int, W: int, device=None) -> torch.Tensor:
-        if device is None:
-            device = torch.device('cpu')
+        device = device or torch.device('cpu')
         d_h = self.embed_dim // 2
         d_w = self.embed_dim - d_h
         assert d_h % 2 == 0 and d_w % 2 == 0, "embed_dim halves must be even"
