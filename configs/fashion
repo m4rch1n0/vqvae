@@ -1,0 +1,15 @@
+seed: 42
+device: auto
+max_epochs: 40
+lr: 3e-4
+weight_decay: 0.01
+early_stop: 6
+ckpt_dir: ./experiments/transformer_fashion/checkpoints
+out_dir: ./experiments/transformer_fashion
+mlflow_tracking_uri: ./experiments/mlruns
+experiment_name: Transformer_Fashion
+run_name: gpt_small
+
+data_config_path: configs/fashion/transformer_data.yaml
+model_config_path: configs/fashion/transformer_model.yaml
+

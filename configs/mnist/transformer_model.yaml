@@ -1,0 +1,11 @@
+vocab_size: 512        # K (codebook size)
+max_seq_len: 16        # 4x4 grid example; adjust to your grid
+d_model: 256
+n_heads: 8
+n_layers: 6
+dropout: 0.1
+use_2d_positions: true
+grid_h: 4
+grid_w: 4
+num_classes: 10
+

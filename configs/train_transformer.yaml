@@ -1,0 +1,15 @@
+seed: 42
+device: auto
+max_epochs: 30
+lr: 3e-4
+weight_decay: 0.01
+early_stop: 5
+ckpt_dir: ./experiments/transformer/checkpoints
+out_dir: ./experiments/transformer
+mlflow_tracking_uri: ./experiments/mlruns
+experiment_name: Transformer
+run_name: gpt_small
+
+data_config_path: configs/mnist/transformer_data.yaml
+model_config_path: configs/mnist/transformer_model.yaml
+

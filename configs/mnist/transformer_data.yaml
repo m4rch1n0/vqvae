@@ -1,0 +1,15 @@
+# Sequence dataset from discrete codes
+codes_path: ./experiments/geo/mnist_codes.pt  # or euclidean baseline codes
+labels_path: ./experiments/geo/mnist_labels.pt
+batch_size: 64
+num_workers: 8
+pin_memory: true
+persistent_workers: true
+add_bos: true
+add_eos: true
+add_cls: false
+pad_token_id: 0
+bos_token_id: 1
+eos_token_id: 2
+cls_token_id: 3
+
