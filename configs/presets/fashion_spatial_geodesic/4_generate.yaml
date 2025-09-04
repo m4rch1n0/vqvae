@@ -1,9 +1,9 @@
 # Configuration for sampling from the trained Transformer
 
-transformer_ckpt_path: experiments/transformer_fashion_geodesic_k512/checkpoints/best.pt
+transformer_ckpt_path: experiments/transformer_fashion_geodesic_k512_conditional_200epochs/checkpoints/best.pt
 vae_ckpt_path: experiments/spatial_vae_fashionmnist/checkpoints/best.pt
 codebook_path: experiments/spatial_codebook_fashion_geodesic_k512/codebook.pt
-out_path: "generated_samples_geodesic.png"
+out_path: "qualitative_results/fashion_geodesic_k512_conditional_multiclass_200epochs.png"
 
 transformer:
   num_classes: 10
@@ -24,6 +24,7 @@ vae:
   norm_type: "batch"
 
 sampling:
-  num_samples: 64
+  samples_per_class: 8
   temperature: 1.0
   top_k: 50
+  class_labels: [0, 1, 9] # 0=T-shirt, 1=Jeans, 9=Shoes

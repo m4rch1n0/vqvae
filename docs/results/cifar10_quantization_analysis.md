@@ -146,8 +146,8 @@ While reconstruction quality lags, geodesic methods may excel at:
 ### Verified Implementations
 - `src/training/assign_codes_val_geodesic.py`: Robust geodesic assignment with connectivity safeguards
 - `src/training/assign_codes.py`: General Euclidean assignment utility
-- `src/training/build_codebook.py`: Geodesic codebook construction pipeline
-- `src/eval/eval_quantized.py`: Consistent evaluation pipeline with proper normalization
+- `src/training/build_codebook_legacy.py`: Geodesic codebook construction pipeline
+- `src/eval/eval_quantized_legacyVAE.py`: Consistent evaluation pipeline with proper normalization
 - `demos/codebook_sampling.py`: Visualization tools for reconstruction comparison
 
 ### Experimental Outputs

@@ -45,7 +45,7 @@ Re-weights k-NN graph edges with decoder-induced Riemannian distances.
 ```python
 # Build Riemannian codebook
 import yaml
-from src.training.build_riemannian_codebook import build_and_save
+from src.scripts.build_riemannian_codebook import build_and_save
 
 with open("configs/riemannian_quantize.yaml", "r") as f:
     config = yaml.safe_load(f)

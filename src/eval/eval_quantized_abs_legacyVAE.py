@@ -12,19 +12,19 @@ from src.models.vae import VAE
 from src.eval.metrics import psnr, ssim_simple
 
 
-def _torch_load_trusted(path, map_location="cpu"):
+def torch_load_trusted(path, map_location="cpu"):
     try:
         return torch.load(path, map_location=map_location, weights_only=False)
     except TypeError:
         return torch.load(path, map_location=map_location)
 
 
-def _load_cfg(path: str) -> dict:
+def load_cfg(path: str) -> dict:
     with open(path, "r") as f:
         return yaml.safe_load(f) or {}
 
 
-def _find_normalize(transform):
+def find_normalize(transform):
     from torchvision import transforms as T
     if transform is None:
         return None
@@ -33,17 +33,17 @@ def _find_normalize(transform):
     sub = getattr(transform, "transforms", None)
     if isinstance(sub, (list, tuple)):
         for s in sub:
-            n = _find_normalize(s)
+            n = find_normalize(s)
             if n is not None:
                 return n
     nested = getattr(transform, "transform", None)
     if nested is not None:
-        return _find_normalize(nested)
+        return find_normalize(nested)
     return None
 
 
 @torch.no_grad()
-def _unnormalize(x: torch.Tensor, norm_module) -> torch.Tensor:
+def unnormalize(x: torch.Tensor, norm_module) -> torch.Tensor:
     if norm_module is None:
         return x
     mean = torch.as_tensor(norm_module.mean, device=x.device).view(1, -1, 1, 1)
@@ -51,9 +51,9 @@ def _unnormalize(x: torch.Tensor, norm_module) -> torch.Tensor:
     return (x * std + mean).clamp(0, 1)
 
 
-def _build_model(device: torch.device) -> Tuple[VAE, dict, dict, bool]:
-    vae_cfg = _load_cfg("configs/vae.yaml")
-    data_cfg = _load_cfg("configs/data.yaml")
+def build_model(device: torch.device) -> Tuple[VAE, dict, dict, bool]:
+    vae_cfg = load_cfg("configs/vae.yaml")
+    data_cfg = load_cfg("configs/data.yaml")
     model = VAE(
         in_channels=int(vae_cfg.get("in_channels", 1)),
         enc_channels=vae_cfg.get("enc_channels", [64, 128, 256]),
@@ -71,7 +71,7 @@ def _build_model(device: torch.device) -> Tuple[VAE, dict, dict, bool]:
     return model, vae_cfg, data_cfg, apply_sigmoid
 
 
-def _nearest_medoid_assign(z: torch.Tensor, z_medoid: torch.Tensor, batch: int = 8192) -> torch.Tensor:
+def nearest_medoid_assign(z: torch.Tensor, z_medoid: torch.Tensor, batch: int = 8192) -> torch.Tensor:
     codes_list = []
     z_medoid_t = z_medoid.t().contiguous()
     b2 = (z_medoid ** 2).sum(dim=1).view(1, -1)
@@ -98,8 +98,8 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Build model from active configs
-    model, vae_cfg, data_cfg, apply_sigmoid = _build_model(device)
-    ckpt = _torch_load_trusted(args.checkpoint, map_location=device)
+    model, vae_cfg, data_cfg, apply_sigmoid = build_model(device)
+    ckpt = torch_load_trusted(args.checkpoint, map_location=device)
     model.load_state_dict(ckpt["model_state_dict"])
 
     # Prepare loaders (val only), order must match saved latents_val
@@ -113,7 +113,7 @@ def main():
         persistent_workers=bool(data_cfg.get("persistent_workers", True)),
         augment=False,
     )
-    norm_mod = _find_normalize(getattr(val_loader.dataset, "transform", None))
+    norm_mod = find_normalize(getattr(val_loader.dataset, "transform", None))
 
     # Load latents (z)
     z_all = torch.load(args.latents, map_location="cpu")
@@ -122,7 +122,7 @@ def main():
     z_all = z_all.float()
 
     # Load codebook medoids
-    cb = _torch_load_trusted(args.codebook, map_location="cpu")
+    cb = torch_load_trusted(args.codebook, map_location="cpu")
     z_medoid = cb["z_medoid"].float()
 
     # Load or compute codes aligned to latents
@@ -133,7 +133,7 @@ def main():
         codes = torch.from_numpy(codes_np).long()
         assert len(codes) == len(z_all), "codes.npy and z.pt must have same length/order"
     else:
-        codes = _nearest_medoid_assign(z_all, z_medoid, batch=8192)
+        codes = nearest_medoid_assign(z_all, z_medoid, batch=8192)
 
     # Build quantized latents
     zq_all = z_medoid[codes]
@@ -160,9 +160,9 @@ def main():
                 x_quant = torch.sigmoid(x_quant)
 
             x_gt = x_gt.to(device)
-            x_gt = _unnormalize(x_gt, norm_mod)
-            x_cont = _unnormalize(x_cont, norm_mod)
-            x_quant = _unnormalize(x_quant, norm_mod)
+            x_gt = unnormalize(x_gt, norm_mod)
+            x_cont = unnormalize(x_cont, norm_mod)
+            x_quant = unnormalize(x_quant, norm_mod)
 
             # Ensure valid image range for PSNR/SSIM
             x_gt = x_gt.clamp(0, 1)

@@ -17,32 +17,77 @@ This project revisits the classic VQ-VAE pipeline by separating the continuous r
 
 ```
 vqvae/
-├── src/                    # Core implementation
-│   ├── data/              # Dataset loaders (MNIST)
-│   ├── models/            # VAE architecture
-│   ├── geo/               # Geodesic computation modules
-│   ├── training/          # Training pipeline
-│   └── utils/             # System utilities
-├── demos/                  # Interactive examples
-│   ├── vae_knn_analysis.py           # Main latent space analysis demo
-│   ├── interactive_exploration.py    # Interactive k-NN visualization
-│   ├── codebook_comparison.py        # Geodesic vs Euclidean quantization comparison
-│   └── kmedoids_geodesic_analysis.py # Geodesic K-medoids (post-hoc quantization)
-├── experiments/           # Research experiments  
-│   ├── geo/              # Riemannian geometry experiments
-│   └── vae_mnist/        # Trained models and latents
-├── scripts/              # Utility scripts
-│   ├── setup_env.sh      # Environment setup
-│   ├── download_data.sh  # Data download
-│   ├── train_vae.sh      # VAE training
-│   └── run_experiments.sh  # Full experimental pipeline
-├── docs/                 # Technical documentation
-│   ├── geo/              # Riemannian geometry docs
-│   └── models/           # Model architecture docs
-└── visualizations/       # Plotting and interaction tools
+├── configs/                   # Hydra configuration files
+│   ├── data/                  # Dataset configs
+│   ├── model/                 # Base model architecture configs
+│   └── presets/               # Runnable experiment presets
+│       └── fashion_spatial_geodesic/ # The main workflow for this project
+├── docs/                      # Documentation and summaries
+├── experiments/               # Default output directory for models and artifacts
+├── qualitative_results/       # Saved generated image grids for comparison
+├── src/                       # Core implementation
+│   ├── data/                  # Dataset loaders and logic
+│   ├── geo/                   # Geodesic computation modules
+│   ├── models/                # VAE and Transformer architectures
+│   ├── training/              # Core training engine logic
+│   ├── scripts/               # Main executable scripts
+│   └── utils/                 # System and logging utilities
+└── README.md
 ```
 
-## Quick Start
+## Quick Start: Main Pipeline (Spatial VAE + Transformer)
+
+This guide runs the entire pipeline for the `fashion_spatial_geodesic` experiment.
+
+### 1. Environment Setup
+
+Ensure you have the required dependencies installed and the conda environment activated.
+
+```bash
+# First time setup: pip install -r requirements.txt
+conda activate rocm_env
+```
+
+### 2. Run the Full Pipeline
+
+The project uses Hydra for configuration. Each step is a Python script that loads its configuration from the `configs/presets/fashion_spatial_geodesic/` directory.
+
+**Step 1: Train the Spatial VAE**
+This script will train the VAE and save the model checkpoint and latent representations to the `experiments/` directory.
+
+```bash
+python src/scripts/train_vae.py
+```
+
+**Step 2: Build the Geodesic Codebook**
+Using the latents from the VAE, this script builds the k-NN graph, re-weights it with the Riemannian metric, and performs k-medoids clustering to create the codebook.
+
+```bash
+python src/scripts/build_codebook.py --config-name presets/fashion_spatial_geodesic/2_build_codebook
+```
+
+**Step 3: Train the Autoregressive Transformer**
+This trains the Transformer on the sequences of discrete codes generated in the previous step.
+
+```bash
+python src/scripts/train_transformer.py
+```
+
+**Step 4: Generate Samples**
+Use the trained Transformer and VAE to generate a grid of new image samples.
+
+```bash
+python src/scripts/generate_samples.py --config-name presets/fashion_spatial_geodesic/4_generate
+```
+
+**Step 5: Evaluate the Generated Samples**
+Calculate PSNR, SSIM, and LPIPS metrics for the generated images.
+
+```bash
+python src/scripts/evaluate_model.py --config-name presets/fashion_spatial_geodesic/5_evaluate
+```
+
+## Legacy Quick Start (Original VAE)
 
 Setup environment and download data:
 ```bash
@@ -65,7 +110,7 @@ This saves checkpoints and latents to `experiments/vae_mnist/` (paths are config
 
 Build geodesic codebook (post‑hoc quantization on latents):
 ```bash
-python src/training/build_codebook.py --config configs/quantize.yaml
+python src/scripts/build_codebook.py --config configs/quantize.yaml
 ```
 
 Compare Euclidean vs Geodesic codebooks:
@@ -88,6 +133,12 @@ Full experimental pipeline:
 
 ## Key Modules
 
+-   **`src/scripts/`**: Contains the five main entry points for the main pipeline.
+-   **`src/models/spatial_vae.py`**: The VAE architecture with a spatial latent grid output.
+-   **`src/models/transformer.py`**: The decoder-only Transformer for autoregressive modeling.
+-   **`src/geo/riemannian_metric.py`**: Computes decoder-induced Riemannian distances using Jacobian-vector products.
+-   **`src/geo/kmeans_optimized.py`**: Implements graph-based geodesic K-medoids clustering.
+
 Riemannian Metric (`src/geo/riemannian_metric.py`)
 - Computes decoder-induced Riemannian distances using Jacobian-vector products
 - Formula: $L_{ij} \approx 0.5 \cdot (\|J(z_i)(z_j - z_i)\|_2 + \|J(z_j)(z_j - z_i)\|_2)$
@@ -105,7 +156,7 @@ K-medoids Clustering (`src/geo/kmeans_optimized.py`)
 - Iterative Dijkstra-based initialization and multi-source assignment
 - Scales to large datasets through algorithmic efficiency
 
-Codebook Builder (`src/training/build_codebook.py`)
+Codebook Builder (`src/scripts/build_codebook.py`)
 - Post-hoc discrete codebook construction via geodesic clustering
 - Saves quantized representations and cluster assignments
 
