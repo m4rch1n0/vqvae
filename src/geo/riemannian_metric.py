@@ -14,6 +14,10 @@ def _compute_jacobian_vector_product(decoder, z: torch.Tensor, direction: torch.
     z = z.requires_grad_(True)
     
     def decode_to_image(latent_point):
+        # Reshape latent point to be a 4D tensor for the conv decoder
+        if latent_point.ndim == 2:
+            latent_point = latent_point.unsqueeze(-1).unsqueeze(-1)
+            
         decoder_output = decoder(latent_point)
         image = torch.sigmoid(decoder_output)
         return image.view(image.size(0), -1)

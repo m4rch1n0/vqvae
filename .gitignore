@@ -28,6 +28,7 @@ outputs/
 *.log
 #instruction.txt
 prompt.txt
+*.png
 
 # Local datasets and archives
 /scripts/data/

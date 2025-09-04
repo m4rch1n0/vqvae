@@ -1,0 +1,30 @@
+# Training config for SpatialVAE
+defaults:
+  - _self_
+  - model: spatial_vae
+  - data: fashion_mnist
+  - hydra/job_logging: colorlog
+  - hydra/hydra_logging: colorlog
+
+seed: 42
+device: auto
+max_epochs: 200
+lr: 1e-3
+weight_decay: 1e-5
+early_stop: 20
+optimizer: adamw
+scheduler:
+  name: cosine
+  t_max: 200
+
+# Paths
+out_dir: experiments/
+mlflow_tracking_uri: experiments/mlruns
+
+# Experiment naming
+experiment_name: VAE_Training_Spatial
+run_name: spatial_vae_fashion_mnist_refactored
+
+# Flags
+save_latents: true
+grad_clip_max_norm: 1.0

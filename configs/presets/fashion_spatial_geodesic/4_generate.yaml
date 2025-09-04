@@ -1,0 +1,29 @@
+# Configuration for sampling from the trained Transformer
+
+transformer_ckpt_path: experiments/transformer_fashion_geodesic_k512/checkpoints/best.pt
+vae_ckpt_path: experiments/spatial_vae_fashionmnist/checkpoints/best.pt
+codebook_path: experiments/spatial_codebook_fashion_geodesic_k512/codebook.pt
+out_path: "generated_samples_geodesic.png"
+
+transformer:
+  num_classes: 10
+  num_tokens: 512
+  embed_dim: 256
+  n_layers: 4
+  n_head: 4
+  max_seq_len: 16
+  dropout: 0.1
+
+vae:
+  in_channels: 1
+  output_image_size: 28
+  latent_dim: 16
+  enc_channels: [64, 128, 256]
+  dec_channels: [256, 128, 64]
+  recon_loss: "mse"
+  norm_type: "batch"
+
+sampling:
+  num_samples: 64
+  temperature: 1.0
+  top_k: 50

@@ -1,0 +1,24 @@
+# Configuration for training the autoregressive Transformer
+defaults:
+  - _self_
+  - model: transformer
+  - hydra/job_logging: colorlog
+  - hydra/hydra_logging: colorlog
+
+system:
+  seed: 42
+  device: auto
+
+data:
+  codes_path: experiments/spatial_codebook_fashion_geodesic_k512/codes.npy
+  labels_path: experiments/spatial_vae_fashionmnist_refactored/latents_train/y.pt # Note: path might change
+  batch_size: 256
+  num_workers: 0
+
+training:
+  epochs: 100
+  lr: 3e-4
+  weight_decay: 0.01
+
+out:
+  dir: experiments/transformer_fashion_geodesic_k512_refactored

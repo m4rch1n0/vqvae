@@ -1,10 +1,11 @@
-from typing import Tuple
+from typing import Tuple, Union
 
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from src.models.vae import VAE
+from src.models.spatial_vae import SpatialVAE
 from src.utils.latents import save_latents
 from src.eval.metrics import psnr as psnr_metric, ssim_simple
 
@@ -12,7 +13,7 @@ from src.eval.metrics import psnr as psnr_metric, ssim_simple
 class TrainingEngine:
     def __init__(
         self,
-        model: VAE,
+        model: Union[VAE, SpatialVAE],
         optimizer: torch.optim.Optimizer,
         device: torch.device,
     ) -> None:
@@ -21,46 +22,16 @@ class TrainingEngine:
         self.device = device
 
     def run_epoch(self, loader: DataLoader, train: bool, epoch: int, num_epochs: int, beta: float, grad_clip_max_norm: float = 0.0, global_step_start: int = 0) -> Tuple[float, float, float, int, float, float]:
-        """Run a single epoch and return (loss, recon, kl, global_step, psnr, ssim).
-
-        PSNR/SSIM are computed only during validation (train=False), otherwise zeros.
-        """
         self.model.train() if train else self.model.eval()
         total, total_recon, total_kl = 0.0, 0.0, 0.0
         steps = 0
         desc = "Train" if train else "Val"
         pbar = tqdm(loader, desc=f"{desc} [{epoch}/{num_epochs}]")
         global_step = int(global_step_start)
-        # Validation helpers
+        
         apply_sigmoid = (getattr(self.model, 'recon_loss', 'mse') == 'bce') or getattr(self.model, 'mse_use_sigmoid', True)
-        val_psnr_sum = 0.0
-        val_ssim_sum = 0.0
-        val_count = 0
-        norm_module = None
-        if not train:
-            from torchvision import transforms as T
-            def find_normalize(t):
-                if t is None:
-                    return None
-                if isinstance(t, T.Normalize):
-                    return t
-                sub = getattr(t, 'transforms', None)
-                if isinstance(sub, (list, tuple)):
-                    for s in sub:
-                        n = find_normalize(s)
-                        if n is not None:
-                            return n
-                nested = getattr(t, 'transform', None)
-                if nested is not None:
-                    return find_normalize(nested)
-                return None
-            norm_module = find_normalize(getattr(loader.dataset, 'transform', None))
-            def unnormalize(x):
-                if norm_module is None:
-                    return x
-                mean = torch.as_tensor(norm_module.mean, device=x.device).view(1, -1, 1, 1)
-                std  = torch.as_tensor(norm_module.std, device=x.device).view(1, -1, 1, 1)
-                return x * std + mean
+        val_psnr_sum, val_ssim_sum, val_count = 0.0, 0.0, 0
+        
         for x, _ in pbar:
             x = x.to(self.device)
             if train:
@@ -68,47 +39,43 @@ class TrainingEngine:
                 loss, recon, kl = self.model.loss(x, x_logits, mu, logvar, beta=beta, step=global_step)
                 self.optimizer.zero_grad(set_to_none=True)
                 loss.backward()
-                if grad_clip_max_norm and grad_clip_max_norm > 0:
-                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=float(grad_clip_max_norm))
+                if grad_clip_max_norm > 0:
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=grad_clip_max_norm)
                 self.optimizer.step()
                 global_step += 1
             else:
                 with torch.no_grad():
                     x_logits, mu, logvar, _ = self.model(x)
                     loss, recon, kl = self.model.loss(x, x_logits, mu, logvar, beta=beta, step=global_step)
-                    # Build image-space tensors for metrics
+                    
                     x_rec = torch.sigmoid(x_logits) if apply_sigmoid else x_logits
-                    x_gt = x
-                    if norm_module is not None:
-                        x_gt = unnormalize(x_gt)
-                        x_rec = unnormalize(x_rec)
-                    x_gt = x_gt.clamp(0, 1)
-                    x_rec = x_rec.clamp(0, 1)
-                    bs = x.size(0)
-                    val_psnr_sum += psnr_metric(x_rec, x_gt) * bs
-                    val_ssim_sum += ssim_simple(x_rec, x_gt) * bs
-                    val_count += bs
+                    x_rec.clamp_(0, 1)
+                    
+                    val_psnr_sum += psnr_metric(x_rec, x) * x.size(0)
+                    val_ssim_sum += ssim_simple(x_rec, x) * x.size(0)
+                    val_count += x.size(0)
 
             total += float(loss.item())
             total_recon += float(recon.item())
             total_kl += float(kl.item())
             steps += 1
+            
             postfix = {
-                'loss': f"{total/steps:.4f}",
-                'recon': f"{total_recon/steps:.4f}",
-                'kl': f"{total_kl/steps:.4f}",
+                'loss': f"{total/steps:.4f}", 'recon': f"{total_recon/steps:.4f}", 'kl': f"{total_kl/steps:.4f}"
             }
             if not train and val_count > 0:
-                postfix.update({
-                    'psnr': f"{(val_psnr_sum/max(1, val_count)):.2f}",
-                    'ssim': f"{(val_ssim_sum/max(1, val_count)):.4f}",
-                })
+                postfix.update({'psnr': f"{(val_psnr_sum/val_count):.2f}", 'ssim': f"{(val_ssim_sum/val_count):.4f}"})
             pbar.set_postfix(postfix)
 
-        avg_psnr = (val_psnr_sum / max(1, val_count)) if not train else 0.0
-        avg_ssim = (val_ssim_sum / max(1, val_count)) if not train else 0.0
-        return total/steps, total_recon/steps, total_kl/steps, global_step, float(avg_psnr), float(avg_ssim)
+        avg_loss = total / len(loader)
+        avg_recon = total_recon / len(loader)
+        avg_kl = total_kl / len(loader)
+        
+        avg_psnr = val_psnr_sum / val_count if val_count > 0 else 0
+        avg_ssim = val_ssim_sum / val_count if val_count > 0 else 0
 
+        return avg_loss, avg_recon, avg_kl, global_step, avg_psnr, avg_ssim
+    
     def train(
         self,
         train_loader: DataLoader,
