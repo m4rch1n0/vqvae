@@ -9,18 +9,22 @@ from torchvision import transforms
 from torchvision.utils import save_image
 from PIL import Image
 import torch.nn.functional as F
+from torchvision.datasets import CIFAR10
 
 from src.eval.metrics import psnr, ssim_simple
 
 
-def load_images(path: str, num_images: int, size: int):
+def load_images(path: str, num_images: int, size: int, dataset_name: str):
     transform = transforms.Compose([
         transforms.Resize((size, size)),
         transforms.ToTensor(),
         transforms.Lambda(lambda x: x.repeat(3, 1, 1) if x.size(0) == 1 else x)
     ])
-    if path.lower() == "fashionmnist":
+    if dataset_name.lower() == "fashionmnist":
         dataset = FashionMNIST(root="data", train=False, download=True, transform=transform)
+        return torch.stack([dataset[i][0] for i in range(num_images)])
+    elif dataset_name.lower() == "cifar10":
+        dataset = CIFAR10(root="data", train=False, download=True, transform=transform)
         return torch.stack([dataset[i][0] for i in range(num_images)])
     else:
         grid_img = Image.open(path).convert("RGB")
@@ -60,8 +64,9 @@ def main(config_path: str):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     lpips_fn = lpips.LPIPS(net='alex').to(device)
 
-    generated_images = load_images(config['generated_path'], config['num_samples'], config['image_size'])
-    real_images = load_images("fashionmnist", config['num_samples'], config['image_size'])
+    dataset_name = config.get("dataset_name", "fashionmnist") # Default to fashionmnist
+    generated_images = load_images(config['generated_path'], config['num_samples'], config['image_size'], dataset_name)
+    real_images = load_images(dataset_name, config['num_samples'], config['image_size'], dataset_name)
 
     generated_images = generated_images.to(device)
     real_images = real_images.to(device)

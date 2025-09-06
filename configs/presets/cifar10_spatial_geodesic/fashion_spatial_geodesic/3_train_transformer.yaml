@@ -1,0 +1,29 @@
+# Configuration for training the autoregressive Transformer
+system:
+  seed: 42
+  device: auto
+
+data:
+  codes_path: experiments/spatial_codebook_fashion_geodesic_k512/codes.npy
+  labels_path: experiments/spatial_vae_fashionmnist/latents_train/y.pt
+  batch_size: 256
+  num_workers: 0
+
+training:
+  epochs: 200
+  lr: 3e-4
+  weight_decay: 0.01
+
+out:
+  dir: experiments/transformer_fashion_geodesic_k512_conditional_200epochs
+
+run_name: transformer_geodesic_k512_conditional_200epochs
+
+model:
+  num_classes: 10
+  num_tokens: 512
+  embed_dim: 256
+  n_layers: 4
+  n_head: 4
+  max_seq_len: 16
+  dropout: 0.1

@@ -66,8 +66,13 @@ class SpatialDecoder(nn.Module):
             nn.ReLU(inplace=True),
         ])
         
-        # Final layer to get to 28x28
-        layers.append(nn.ConvTranspose2d(channels[2], out_channels, 4, stride=2, padding=3))
+        # Final layer to get to target size
+        if output_image_size == 32:
+            layers.append(nn.ConvTranspose2d(channels[2], out_channels, 4, stride=2, padding=1)) # -> 32x32
+        elif output_image_size == 28:
+            layers.append(nn.ConvTranspose2d(channels[2], out_channels, 4, stride=2, padding=3)) # -> 28x28
+        else:
+            raise ValueError(f"Unsupported output size: {output_image_size}")
 
         self.deconv_layers = nn.Sequential(*layers)
 

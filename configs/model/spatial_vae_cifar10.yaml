@@ -1,0 +1,12 @@
+# Spatial VAE architecture for CIFAR-10
+in_channels: 3
+output_image_size: 32
+latent_dim: 32  # Increased from 16 for more capacity
+enc_channels: [64, 128, 256]
+dec_channels: [256, 128, 64]
+recon_loss: mse
+beta: 1.0
+norm_type: batch
+mse_use_sigmoid: false # CIFAR10 is usually normalized, no final sigmoid
+
+

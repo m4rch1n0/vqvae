@@ -1,0 +1,10 @@
+# Transformer architecture for CIFAR-10 Spatial Codes
+num_classes: 10
+num_tokens: 512 # K from quantization
+embed_dim: 512
+n_layers: 8
+n_head: 8
+max_seq_len: 16 # VAE output is still 4x4
+dropout: 0.1
+
+

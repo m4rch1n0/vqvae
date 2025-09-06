@@ -1,0 +1,29 @@
+# Configuration for geodesic spatial quantization
+
+data:
+  latents_path: experiments/spatial_vae_fashionmnist/latents_train/z.pt
+
+out:
+  dir: experiments/spatial_codebook_fashion_geodesic_k512
+
+vae_ckpt_path: experiments/spatial_vae_fashionmnist/checkpoints/best.pt
+vae:
+  in_channels: 1
+  output_image_size: 28
+  latent_dim: 16
+  enc_channels: [64, 128, 256]
+  dec_channels: [256, 128, 64]
+  recon_loss: "mse"
+  norm_type: "batch"
+
+graph:
+  k: 20 # Use a slightly higher k for better manifold approximation
+  sym: "union"
+
+quantize:
+  K: 512
+  init: "kpp"
+  seed: 42
+
+system:
+  batch_size: 512 # Batch size for Riemannian metric calculation

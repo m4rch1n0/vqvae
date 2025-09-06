@@ -1,0 +1,7 @@
+# Configuration for evaluating generated samples for CIFAR-10
+
+generated_path: "qualitative_results/cifar10_geodesic_k512_conditional_multiclass.png"
+out_dir: "evaluation_results_cifar10"
+num_samples: 24 # 3 classes * 8 samples
+image_size: 32
+dataset_name: "cifar10"

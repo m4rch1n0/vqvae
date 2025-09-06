@@ -40,9 +40,9 @@ def main(config_path: str) -> None:
 
     model = SpatialVAE(**cfg['model']).to(device)
 
-    opt = AdamW(model.parameters(), lr=cfg['lr'], weight_decay=cfg['weight_decay'])
+    opt = AdamW(model.parameters(), lr=float(cfg['lr']), weight_decay=float(cfg['weight_decay']))
     
-    scheduler = CosineAnnealingLR(opt, T_max=cfg['max_epochs']) if cfg.get('scheduler') else None
+    scheduler = CosineAnnealingLR(opt, T_max=int(cfg['max_epochs'])) if cfg.get('scheduler') else None
 
     engine = TrainingEngine(model=model, optimizer=opt, device=device)
 

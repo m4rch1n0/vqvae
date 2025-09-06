@@ -1,0 +1,50 @@
+# Training config for SpatialVAE on CIFAR-10
+defaults:
+  - _self_
+  - model: spatial_vae_cifar10
+  - data: cifar10
+  - override hydra/job_logging: colorlog
+  - override hydra/hydra_logging: colorlog
+
+seed: 42
+device: auto
+max_epochs: 200 # Full training run
+lr: 1e-3
+weight_decay: 1e-5
+early_stop: 20
+optimizer: adamw
+scheduler:
+  name: cosine
+  t_max: 200
+
+# Paths
+out_dir: experiments/
+mlflow_tracking_uri: experiments/mlruns
+
+# Experiment naming
+experiment_name: VAE_Training_Spatial_CIFAR10
+run_name: spatial_vae_cifar10
+
+# Flags
+save_latents: true
+grad_clip_max_norm: 1.0
+
+data:
+  name: CIFAR10
+  root: ./data
+  batch_size: 256
+  num_workers: 4
+  pin_memory: true
+  persistent_workers: true
+  augment: true
+
+model:
+  in_channels: 3
+  output_image_size: 32
+  latent_dim: 32
+  enc_channels: [64, 128, 256]
+  dec_channels: [256, 128, 64]
+  recon_loss: mse
+  beta: 1.0
+  norm_type: batch
+  mse_use_sigmoid: false
