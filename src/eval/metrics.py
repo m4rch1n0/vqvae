@@ -33,8 +33,3 @@ def codebook_stats(codes: torch.Tensor, K: int) -> dict:
     entropy = float(-(p * p.log()).sum())
     dead = int((hist == 0).sum())
     return {"entropy": entropy, "dead_codes": dead, "used": int((hist>0).sum())}
-
-
-
-
-

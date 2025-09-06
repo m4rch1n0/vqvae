@@ -26,8 +26,6 @@ outputs/
 *.pt
 *.ckpt
 *.log
-instruction.txt
-prompt.txt
 *.png
 
 # Local datasets and archives

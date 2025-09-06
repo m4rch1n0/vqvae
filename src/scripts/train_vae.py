@@ -7,7 +7,7 @@ import argparse
 
 from src.data import get_data_loaders
 from src.models.spatial_vae import SpatialVAE
-from src.training.engine import TrainingEngine
+from src.training.spatial_engine import SpatialTrainingEngine
 from src.utils.system import set_seed, get_device
 from src.utils.logger import MlflowLogger
 
@@ -44,7 +44,7 @@ def main(config_path: str) -> None:
     
     scheduler = CosineAnnealingLR(opt, T_max=int(cfg['max_epochs'])) if cfg.get('scheduler') else None
 
-    engine = TrainingEngine(model=model, optimizer=opt, device=device)
+    engine = SpatialTrainingEngine(model=model, optimizer=opt, device=device)
 
     dataset_name = str(cfg['data']['name']).lower()
     ds_slug = f"spatial_vae_{dataset_name}"

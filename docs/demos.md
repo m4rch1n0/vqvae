@@ -115,7 +115,6 @@ python demos/interactive_exploration.py
 python demos/kmedoids_geodesic_analysis.py
 
 
-#TODO: investigate sampling because as for now I'm not sure these works.
 # Reconstruct grid using a codebook (supports optional --out_dir)
 python demos/codebook_sampling.py \
   --codebook_dir experiments/geo/codebook_<dataset>_k1024/ \
