@@ -10,16 +10,31 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from src.geo.knn_graph_optimized import build_knn_graph
 from src.geo.riemannian_metric import edge_lengths_riemannian
-from src.models.vae import VAE
+from src.utils.checkpoint_utils import get_vae_decoder
 
-# Configuration - modify these values as needed
-LATENTS_PATH = "experiments/vae_mnist/latents_val/z.pt"
-CHECKPOINT_PATH = "experiments/vae_mnist/checkpoints/best.pt"
-OUTPUT_DIR = "experiments/geo/riemann_sanity"
-K_NEIGHBORS = 10
-MAX_EDGES = 2000
-LATENT_DIM = 16
-IMAGE_SHAPE = (1, 28, 28)
+import argparse
+
+# Dataset configurations
+DATASET_CONFIGS = {
+    'mnist': {
+        'latents_path': "experiments/vae_mnist/latents_val/z.pt",
+        'checkpoint_path': "experiments/vae_mnist/checkpoints/best.pt"
+    },
+    'cifar10': {
+        'latents_path': "experiments/cifar10/vanilla/euclidean/vae/latents_val/z.pt",
+        'checkpoint_path': "experiments/cifar10/vanilla/euclidean/vae/checkpoints/best.pt"
+    },
+    'fashionmnist': {
+        'latents_path': "experiments/fashionmnist/vanilla/euclidean/vae/latents_val/z.pt", 
+        'checkpoint_path': "experiments/fashionmnist/vanilla/euclidean/vae/checkpoints/best.pt"
+    }
+}
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Riemannian vs Euclidean distance sanity check")
+    parser.add_argument('--dataset', choices=['mnist', 'cifar10', 'fashionmnist'], 
+                       default='mnist', help='Dataset to use for analysis')
+    return parser.parse_args()
 
 def load_latents(latent_path):
     """Load latent vectors from file"""
@@ -32,105 +47,90 @@ def load_latents(latent_path):
             return obj.float()
     raise FileNotFoundError(f"Latents not found at: {latent_path}")
 
-def load_decoder(checkpoint_path, latent_dim, device="cpu"):
-    """Load VAE decoder from checkpoint"""
-    if not os.path.exists(checkpoint_path):
-        print(f"Checkpoint not found: {checkpoint_path}")
-        return None
-    
-    try:
-        checkpoint = torch.load(checkpoint_path, map_location=device)
-        if isinstance(checkpoint, dict) and 'model' in checkpoint:
-            state_dict = checkpoint['model']
-        else:
-            state_dict = checkpoint
-        
-        vae = VAE(latent_dim=latent_dim)
-        vae.load_state_dict(state_dict)
-        decoder = vae.decoder.eval()
-        print(f"Decoder loaded from: {checkpoint_path}")
-        return decoder.to(device)
-    except Exception as e:
-        print(f"Error loading decoder: {e}")
-        return None
 
-def run_experiment():
+def run_experiment(args):
     """Run Riemannian vs Euclidean distance comparison experiment"""
     
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    # Get paths from dataset config
+    latents_path = DATASET_CONFIGS[args.dataset]['latents_path']
+    checkpoint_path = DATASET_CONFIGS[args.dataset]['checkpoint_path']
+    
+    project_root = Path(__file__).parent.parent.parent
+    output_dir = project_root / "experiments" / "geo" / "riemann_sanity" / args.dataset
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_dir = str(output_dir)
+    
+    # Fixed parameters
+    k_neighbors = 10
+    max_edges = 2000
     
     # Load latent vectors
-    print(f"Loading latents from: {LATENTS_PATH}")
-    z = load_latents(LATENTS_PATH)
+    print(f"Loading latents from: {latents_path}")
+    z = load_latents(latents_path)
     z = z.cpu()
     N, D = z.shape[0], z.shape[1]
     print(f"Loaded {N} latent vectors of dimension {D}")
     
-    # Build k-NN graph
-    print(f"Building k-NN graph with k={K_NEIGHBORS}")
-    W, info = build_knn_graph(z.numpy(), k=K_NEIGHBORS, metric="euclidean", mode="distance", sym="mutual")
+    # Build k-NN graph and sample edges
+    print(f"Building k-NN graph with k={k_neighbors}")
+    W, _ = build_knn_graph(z.numpy(), k=k_neighbors, metric="euclidean", mode="distance", sym="mutual")
     rows, cols = W.nonzero()
-    M = min(MAX_EDGES, len(rows))
     
     # Sample random edges
+    n_edges = min(max_edges, len(rows))
     rng = np.random.RandomState(0)
-    sel = rng.choice(len(rows), M, replace=False)
-    i, j = rows[sel], cols[sel]
-    print(f"Sampled {M} edges from k-NN graph")
+    indices = rng.choice(len(rows), n_edges, replace=False)
+    i, j = rows[indices], cols[indices]
+    print(f"Sampled {n_edges} edges from k-NN graph")
 
-    # Compute Euclidean edge lengths
+    # Compute edge lengths
     ze = z.numpy()
-    de = np.linalg.norm(ze[j] - ze[i], axis=1)
-
-    # Load decoder and compute Riemannian edge lengths
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    decoder = load_decoder(CHECKPOINT_PATH, latent_dim=D, device=device)
+    de = np.linalg.norm(ze[j] - ze[i], axis=1)  # Euclidean
     
+    # Load decoder using utility
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    decoder = get_vae_decoder(checkpoint_path, latent_dim=D, device=device)
     if decoder is None:
         print("Cannot load decoder. Exiting.")
         return
 
-    zi = z[i].to(device)
-    zj = z[j].to(device)
+    zi, zj = z[i].to(device), z[j].to(device)
     with torch.no_grad():
-        dr = edge_lengths_riemannian(decoder, zi, zj, batch_size=256).cpu().numpy()
+        dr = edge_lengths_riemannian(decoder, zi, zj, batch_size=256).cpu().numpy()  # Riemannian
 
-    # Compute statistics
-    corr = np.corrcoef(de, dr)[0,1]
-    ratio = np.mean(dr / (de + 1e-8))
+    # Compute and save statistics
     ratios = dr / (de + 1e-8)
-
-    # Save results
+    corr = np.corrcoef(de, dr)[0,1]
+    mean_ratio = np.mean(ratios)
+    
     np.savez(
-        os.path.join(OUTPUT_DIR, "sanity_stats.npz"),
-        corr=corr,
-        ratio=ratio,
-        de=de,
-        dr=dr,
-        decoder_type="real_VAE_MNIST"
+        os.path.join(output_dir, f"sanity_stats_{args.dataset}.npz"),
+        corr=corr, ratio=mean_ratio, de=de, dr=dr, 
+        dataset=args.dataset, decoder_type=f"real_VAE_{args.dataset.upper()}"
     )
-
-    print(f"Results: correlation={corr:.3f}, mean_ratio={ratio:.3f}")
-
-    # Create plots
-    plt.figure(figsize=(10, 5))
     
-    plt.subplot(1, 2, 1)
-    plt.scatter(de, dr, s=6, alpha=0.6)
-    plt.xlabel("Euclidean edge length")
-    plt.ylabel("Riemannian edge length")
-    plt.title(f"Riemannian vs Euclidean (k={K_NEIGHBORS})")
+    print(f"Results: correlation={corr:.3f}, mean_ratio={mean_ratio:.3f}")
+
+    # Create comparison plots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
     
-    plt.subplot(1, 2, 2)
-    plt.hist(ratios, bins=50)
-    plt.xlabel("Ratio Riemannian / Euclidean")
-    plt.ylabel("Count")
-    plt.title("Distribution of length ratios")
+    ax1.scatter(de, dr, s=6, alpha=0.6)
+    ax1.set_xlabel("Euclidean edge length")
+    ax1.set_ylabel("Riemannian edge length")
+    ax1.set_title(f"{args.dataset.upper()} - Riemannian vs Euclidean (k={k_neighbors})")
+    
+    ax2.hist(ratios, bins=50)
+    ax2.set_xlabel("Ratio Riemannian / Euclidean")
+    ax2.set_ylabel("Count")
+    ax2.set_title("Distribution of length ratios")
     
     plt.tight_layout()
-    plt.savefig(os.path.join(OUTPUT_DIR, "riemann_analysis.png"), dpi=150)
-    print(f"Plots saved to: {OUTPUT_DIR}/riemann_analysis.png")
+    plot_path = os.path.join(output_dir, f"riemann_analysis_{args.dataset}.png")
+    plt.savefig(plot_path, dpi=150)
+    print(f"Analysis complete! Plots saved to: {plot_path}")
 
 
 if __name__ == "__main__":
-    run_experiment()
+    args = parse_args()
+    print(f"Running Riemann sanity check on {args.dataset.upper()} dataset")
+    run_experiment(args)

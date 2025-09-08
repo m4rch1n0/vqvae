@@ -1,5 +1,0 @@
-# Configuration for geodesic spatial quantization on CIFAR-10 (using MU)
-latents_path: experiments/spatial_vae_cifar10/latents_train/mu.pt
-out_dir: experiments/spatial_codebook_cifar10_geodesic_k512_mu
-
-

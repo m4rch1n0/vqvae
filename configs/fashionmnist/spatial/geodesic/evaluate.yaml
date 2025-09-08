@@ -1,0 +1,26 @@
+# FashionMNIST Spatial VAE Geodesic Evaluation Config
+# Organized structure: experiments/fashionmnist/spatial/geodesic/evaluation/
+
+data:
+  dataset_name: "fashionmnist"
+  test_size: 1000
+
+# Uniform evaluation parameters (same across all approaches)
+generated_path: "experiments/fashionmnist/spatial/geodesic/evaluation/generated_samples.png"
+num_samples: 100  # 10 samples per class
+samples_per_class: 10
+image_size: 28    # FashionMNIST resolution
+
+metrics:
+  calculate_psnr: true
+  calculate_ssim: true
+  calculate_lpips: true
+
+out_dir: "experiments/fashionmnist/spatial/geodesic/evaluation"
+metrics_file: "evaluation_metrics.json"
+comparison_file: "evaluation_results.txt"
+
+system:
+  device: "cuda"
+  seed: 42
+

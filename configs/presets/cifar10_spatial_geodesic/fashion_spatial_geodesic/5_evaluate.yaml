@@ -1,6 +1,0 @@
-# Configuration for evaluating generated samples
-
-generated_path: "generated_samples_geodesic.png"
-out_dir: "evaluation_results_geodesic_k512"
-num_samples: 64
-image_size: 28

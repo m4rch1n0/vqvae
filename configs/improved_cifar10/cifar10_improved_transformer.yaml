@@ -1,0 +1,43 @@
+# IMPROVED CIFAR-10 Transformer Configuration
+# Addresses: model capacity, training stability, generation quality
+
+system:
+  seed: 42
+  device: auto
+
+data:
+  codes_path: experiments/cifar10/improved/spatial/codebook/codes.npy
+  labels_path: experiments/cifar10/improved/spatial/vae/latents_train/y.pt
+  batch_size: 64   # Smaller batch for large model
+  num_workers: 0
+  vanilla_vae: false
+
+training:
+  epochs: 400      # More epochs for large model convergence
+  lr: 1e-4         # Lower LR for stability with larger model
+  weight_decay: 0.1  # Higher weight decay for regularization
+  label_smoothing: 0.1
+  
+  # Learning rate scheduling
+  warmup_epochs: 20
+  min_lr: 1e-6
+  
+out:
+  dir: experiments/cifar10/improved/spatial/transformer
+
+run_name: improved_spatial_transformer
+
+# SIGNIFICANTLY SCALED UP MODEL
+model:
+  num_classes: 10
+  num_tokens: 2048    # DOUBLED codebook size 
+  embed_dim: 768      # TRIPLED embedding dimension
+  n_layers: 12        # TRIPLED depth
+  n_head: 12          # More attention heads
+  max_seq_len: 16     # 4x4 spatial grid
+  dropout: 0.15       # Higher dropout for regularization
+  
+  # Additional improvements
+  layer_norm_first: true     # Pre-norm architecture
+  use_flash_attention: false  # For compatibility
+

@@ -1,0 +1,20 @@
+# CIFAR-10 Vanilla VAE Euclidean Codebook Config
+# Organized structure: experiments/cifar10/vanilla/euclidean/codebook/
+
+data:
+  dataset: "cifar10"
+  latents_path: "experiments/cifar10/vanilla/euclidean/vae/latents_train/mu.pt"
+
+graph:
+  k: 20
+  metric: "euclidean"
+  sym: "union"
+  mode: "connectivity"
+
+quantize:
+  K: 512
+  init: "kpp"
+  seed: 42
+
+out:
+  dir: "experiments/cifar10/vanilla/euclidean/codebook"

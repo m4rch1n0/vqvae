@@ -1,0 +1,63 @@
+# IMPROVED CIFAR-10 Generation Configuration
+# Addresses: sampling quality, temperature scheduling, class conditioning
+
+# Model checkpoints and paths  
+transformer_ckpt_path: "experiments/cifar10/improved/spatial/transformer/checkpoints/best.pt"
+vae_ckpt_path: "experiments/cifar10/improved/spatial/vae/checkpoints/best.pt"
+codebook_path: "experiments/cifar10/improved/spatial/codebook/codebook.pt"
+
+# Improved model configurations
+transformer:
+  num_tokens: 2048    # Matches improved codebook
+  embed_dim: 768      # Matches improved transformer
+  n_layers: 12
+  n_head: 12
+  max_seq_len: 16
+  num_classes: 10
+  dropout: 0.15
+
+vae:
+  in_channels: 3
+  output_image_size: 32
+  latent_dim: 64      # Matches improved VAE
+  enc_channels: [64, 128, 256, 512]
+  dec_channels: [512, 256, 128, 64]
+  recon_loss: "mse"
+  norm_type: "batch"
+  mse_use_sigmoid: false
+
+# IMPROVED sampling strategy
+sampling:
+  num_samples: 100
+  samples_per_class: 10
+  class_labels: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+  
+  # Multi-temperature sampling for diversity
+  temperature: [0.8, 1.0, 1.2]  # Try multiple temperatures
+  top_k: [30, 50, 100]          # Multiple top-k values
+  
+  # Advanced sampling techniques
+  nucleus_p: 0.95    # Nucleus sampling threshold
+  repetition_penalty: 1.1  # Prevent repetitive generation
+  
+# Multiple generation passes
+generation_passes:
+  - name: "conservative"
+    temperature: 0.8
+    top_k: 30
+  - name: "balanced" 
+    temperature: 1.0
+    top_k: 50
+  - name: "creative"
+    temperature: 1.2
+    top_k: 100
+
+# Output settings
+output_dir: "experiments/cifar10/improved/spatial/evaluation"
+output_filename: "improved_generated_samples.png"
+
+# System settings
+device: "cuda"
+seed: 42
+vanilla_vae: false
+

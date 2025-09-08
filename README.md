@@ -17,13 +17,24 @@ This project revisits the classic VQ-VAE pipeline by separating the continuous r
 
 ```
 vqvae/
-├── configs/                   # Hydra configuration files
-│   ├── data/                  # Dataset configs
-│   ├── model/                 # Base model architecture configs
-│   └── presets/               # Runnable experiment presets
-│       └── fashion_spatial_geodesic/ # The main workflow for this project
+├── configs/                   # YAML configuration files (no Hydra required)
+│   ├── fashionmnist/
+│   │   └── spatial/
+│   │       └── geodesic/
+│   │           ├── vae.yaml
+│   │           ├── codebook.yaml
+│   │           ├── transformer.yaml
+│   │           ├── generate.yaml
+│   │           └── evaluate.yaml
+│   ├── cifar10/
+│   │   ├── spatial/geodesic/...           # Same layout as above
+│   │   └── vanilla/{euclidean,geodesic}/... 
+│   ├── sandbox-fashion/...                # Sandbox presets
+│   ├── improved_cifar10/...               # Experimental improved configs
+│   ├── data.yaml                          # Default dataset selector for legacy flow
+│   └── vae.yaml                           # Default VAE config for legacy flow
 ├── docs/                      # Documentation and summaries
-├── experiments/               # Default output directory for models and artifacts
+├── experiments/               # Output directory for models and artifacts
 ├── qualitative_results/       # Saved generated image grids for comparison
 ├── src/                       # Core implementation
 │   ├── data/                  # Dataset loaders and logic
@@ -35,59 +46,101 @@ vqvae/
 └── README.md
 ```
 
-## Quick Start: Main Pipeline (Spatial VAE + Transformer)
+## Quick Start: Main Pipeline (via `scripts/`)
 
-This guide runs the entire pipeline for the `fashion_spatial_geodesic` experiment.
+The end-to-end pipelines are orchestrated by the scripts in `scripts/`. These scripts expect to be run from within the `scripts/` directory (paths inside use `../`).
 
 ### 1. Environment Setup
 
-Ensure you have the required dependencies installed and the conda environment activated.
-
 ```bash
-# First time setup: pip install -r requirements.txt
 conda activate rocm_env
+./scripts/setup_env.sh
 ```
 
-### 2. Run the Full Pipeline
-
-The project uses Hydra for configuration. Each step is a Python script that loads its configuration from the `configs/presets/fashion_spatial_geodesic/` directory.
-
-**Step 1: Train the Spatial VAE**
-This script will train the VAE and save the model checkpoint and latent representations to the `experiments/` directory.
+### 2. Download Data
 
 ```bash
-python src/scripts/train_vae.py
+./scripts/download_data.sh fashion   # or: mnist | cifar10
 ```
 
-**Step 2: Build the Geodesic Codebook**
-Using the latents from the VAE, this script builds the k-NN graph, re-weights it with the Riemannian metric, and performs k-medoids clustering to create the codebook.
+### 3. Run a Pipeline
+
+Change into the `scripts/` directory before launching any pipeline:
 
 ```bash
-python src/scripts/build_codebook.py --config-name presets/fashion_spatial_geodesic/2_build_codebook
+cd scripts
 ```
 
-**Step 3: Train the Autoregressive Transformer**
-This trains the Transformer on the sequences of discrete codes generated in the previous step.
-
+- FashionMNIST Spatial Geodesic (full pipeline):
 ```bash
-python src/scripts/train_transformer.py
+python run_fashionmnist_spatial_geodesic_pipeline.py \
+  [--skip-vae] [--skip-codebook] [--skip-transformer] [--skip-generation] [--skip-evaluation]
 ```
 
-**Step 4: Generate Samples**
-Use the trained Transformer and VAE to generate a grid of new image samples.
-
+- CIFAR-10 Spatial Geodesic (full pipeline):
 ```bash
-python src/scripts/generate_samples.py --config-name presets/fashion_spatial_geodesic/4_generate
+python run_cifar10_spatial_geodesic_pipeline.py \
+  [--skip-vae] [--skip-codebook] [--skip-transformer] [--skip-generation] [--skip-evaluation]
 ```
 
-**Step 5: Evaluate the Generated Samples**
-Calculate PSNR, SSIM, and LPIPS metrics for the generated images.
-
+- FashionMNIST Vanilla Euclidean pipeline:
 ```bash
-python src/scripts/evaluate_model.py --config-name presets/fashion_spatial_geodesic/5_evaluate
+python run_fashionmnist_vanilla_euclidean_pipeline.py \
+  [--skip-vae] [--skip-codebook] [--skip-transformer] [--skip-generation] [--skip-evaluation]
 ```
 
-## Legacy Quick Start (Original VAE)
+- FashionMNIST Vanilla Geodesic pipeline (with extra checks):
+```bash
+python run_fashionmnist_vanilla_geodesic_pipeline.py \
+  [--skip-vae] [--skip-vae-check] [--skip-codebook] [--skip-quantization-analysis] \
+  [--skip-codebook-health] [--skip-transformer] [--skip-generation] [--skip-evaluation]
+```
+
+- CIFAR-10 Vanilla Euclidean pipeline:
+```bash
+python run_cifar10_vanilla_euclidean_pipeline.py \
+  [--skip-vae] [--skip-codebook] [--skip-transformer] [--skip-generation] [--skip-evaluation]
+```
+
+Outputs are written under `experiments/<dataset>/<variant>/<distance>/...` and include `vae/`, `codebook/`, `transformer/`, and `evaluation/` subfolders.
+
+### Advanced: Manual Pipeline
+
+If you prefer running each step manually, use the per-step scripts and configs:
+
+1) Train Spatial VAE
+```bash
+python src/scripts/train_vae.py --config configs/fashionmnist/spatial/geodesic/vae.yaml
+```
+
+2) Build Geodesic Codebook (CLI mirrors `configs/.../codebook.yaml`)
+```bash
+python src/scripts/build_codebook.py \
+  --latents_path experiments/fashionmnist/spatial/geodesic/vae/spatial_vae_fashionmnist/spatial_vae_fashionmnist/latents_train/z.pt \
+  --vae_ckpt_path experiments/fashionmnist/spatial/geodesic/vae/spatial_vae_fashionmnist/spatial_vae_fashionmnist/checkpoints/best.pt \
+  --out_dir experiments/fashionmnist/spatial/geodesic/codebook \
+  --in_channels 1 --output_image_size 28 --latent_dim 16 \
+  --enc_channels 64 128 256 --dec_channels 256 128 64 \
+  --recon_loss mse --norm_type batch --mse_use_sigmoid \
+  --k 20 --sym union --K 512 --init kpp --seed 42 --batch_size 512
+```
+
+3) Train Transformer
+```bash
+python src/scripts/train_transformer.py --config configs/fashionmnist/spatial/geodesic/transformer.yaml
+```
+
+4) Generate Samples
+```bash
+python src/scripts/generate_samples.py --config configs/fashionmnist/spatial/geodesic/generate.yaml
+```
+
+5) Evaluate
+```bash
+python src/eval/evaluate_model.py --config configs/fashionmnist/spatial/geodesic/evaluate.yaml
+```
+
+## Legacy Quick Start (Vanilla VAE)
 
 Setup environment and download data:
 ```bash
@@ -101,29 +154,24 @@ Select dataset (default: MNIST) in `configs/data.yaml`:
 name: MNIST
 ```
 
-Train VAE model:
+Train vanilla VAE model:
 ```bash
-./scripts/train_vae.sh
+python src/scripts/train_vanilla_vae.py --config configs/fashionmnist/vanilla/euclidean/vae.yaml
 ```
 
-This saves checkpoints and latents to `experiments/vae_mnist/` (paths are configurable in `configs/train.yaml`).
-
-Build geodesic codebook (post‑hoc quantization on latents):
-```bash
-python src/scripts/build_codebook.py --config configs/quantize.yaml
-```
+Build codebook (post‑hoc quantization on latents) for the chosen preset by passing the explicit flags analogous to the corresponding `configs/.../codebook.yaml`.
 
 Compare Euclidean vs Geodesic codebooks:
 ```bash
 python demos/codebook_comparison.py --config test2
 ```
 
-Run other demos:
+Available demos:
 ```bash
-python demos/vae_knn_analysis.py
 python demos/interactive_exploration.py
 python demos/codebook_comparison.py
 python demos/kmedoids_geodesic_analysis.py
+python demos/codebook_sampling.py
 ```
 
 Full experimental pipeline:
@@ -170,28 +218,29 @@ Codebook Builder (`src/scripts/build_codebook.py`)
 
 ## Configuration
 
-Main configuration files in `configs/`:
-- `configs/data.yaml` - Dataset configuration (set `name: MNIST` or `FashionMNIST`)
-- `configs/vae.yaml` - VAE architecture
-- `configs/train.yaml` - Training parameters
+Configuration lives under `configs/<dataset>/<variant>/<distance>/` and is per‑step:
+- `vae.yaml` – Spatial or vanilla VAE training
+- `codebook.yaml` – Reference values/paths for codebook building (pass via CLI flags)
+- `transformer.yaml` – Transformer training on codes
+- `generate.yaml` – Sample generation settings
+- `evaluate.yaml` – Quantitative evaluation settings
+
+Legacy helpers:
+- `configs/data.yaml` – quick dataset selector for older scripts
+- `configs/vae.yaml` – default VAE config for legacy flow
 
 ## Results
 
-Experimental outputs saved to:
-- `experiments/geo/` - Riemannian analysis results
-- `demo_outputs/` - Demo visualizations and quantization comparisons
-- `experiments/vae_mnist/` - Trained models and latent representations
+Experimental outputs are organized by dataset/variant under `experiments/`:
+- `experiments/fashionmnist/spatial/geodesic/vae/` – Spatial VAE checkpoints and latents
+- `experiments/fashionmnist/spatial/geodesic/codebook/` – k‑NN graphs, codebook, codes.npy
+- `experiments/fashionmnist/spatial/geodesic/transformer/` – Transformer checkpoints
+- `experiments/fashionmnist/spatial/geodesic/evaluation/` – Generated grids and metrics
 
 Notes:
-- Dataset presets live under `configs/presets/<dataset>/`. Root files (`configs/data.yaml`, `configs/vae.yaml`, `configs/train.yaml`) are real copies of the chosen preset.
-- Switch dataset quickly:
-  ```bash
-  bash scripts/select_dataset.sh mnist   # or fashion, cifar10
-  ```
-  Then run training/quantization as usual.
-- Ensure `in_channels` matches the dataset (`1` for MNIST/Fashion, `3` for CIFAR10).
-  - `output_image_size`: 28 for MNIST/Fashion, 32 for CIFAR10
-- Training auto-clusters outputs per dataset name (mnist/fashion/cifar10) for checkpoints and out dirs.
+- Ensure `in_channels` matches the dataset (`1` for MNIST/FashionMNIST, `3` for CIFAR10)
+- `output_image_size`: 28 for MNIST/FashionMNIST, 32 for CIFAR10
+- Use the dataset‑specific configs under `configs/cifar10/...` to replicate CIFAR10 runs
 
 ## Dependencies
 
@@ -202,7 +251,6 @@ Notes:
 - MLflow (experiment tracking)
 
 See `requirements.txt` for complete dependencies.
-
 ## Documentation
 
 Detailed technical documentation available in `docs/`:
@@ -213,3 +261,4 @@ Detailed technical documentation available in `docs/`:
 ## Citation
 
 This work explores the intersection of differential geometry and discrete representation learning, building on foundations from VQ-VAE and Riemannian geometry in deep learning.
+

@@ -1,8 +1,0 @@
-# Transformer architecture for Fashion-MNIST Spatial Codes
-num_classes: 10
-num_tokens: 512 # K from quantization
-embed_dim: 256
-n_layers: 4
-n_head: 4
-max_seq_len: 16
-dropout: 0.1

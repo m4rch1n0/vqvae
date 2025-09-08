@@ -6,7 +6,7 @@ import logging
 from torch.utils.data import DataLoader, Dataset
 from torchvision import datasets, transforms
 
-from .codes_dataset import CodesDataset
+from .codes_dataset import CodesDataset, VanillaCodesDataset
 
 _DATA_ROOT = "data/"
 _VALID_NAMES = {"MNIST", "FashionMNIST", "CIFAR10"}
@@ -27,12 +27,17 @@ def get_code_loaders(
     num_workers: int = 4,
     pin_memory: bool = True,
     persistent_workers: bool = False,
+    vanilla_vae: bool = False,
+    num_tokens: Optional[int] = None,
 ) -> Tuple[DataLoader, DataLoader]:
     """Creates train/val DataLoaders for quantized codes."""
     
-    # For now, we'll use the same data for train and val as an example.
-    # A proper train/val split should be done on the codes.
-    dataset = CodesDataset(codes_path=codes_path, labels_path=labels_path)
+    if vanilla_vae:
+        if num_tokens is None:
+            raise ValueError("`num_tokens` must be provided for VanillaCodesDataset")
+        dataset = VanillaCodesDataset(codes_path=codes_path, labels_path=labels_path, num_tokens=num_tokens)
+    else:
+        dataset = CodesDataset(codes_path=codes_path, labels_path=labels_path)
     
     loader = DataLoader(
         dataset,

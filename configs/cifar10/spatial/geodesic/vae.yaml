@@ -1,0 +1,46 @@
+# CIFAR-10 Spatial VAE Training Config (Geodesic Pipeline)
+# Organized structure: experiments/cifar10/spatial/geodesic/vae/
+
+seed: 42
+device: auto
+max_epochs: 200
+lr: 1e-3
+weight_decay: 1e-5
+log_interval: 100
+val_interval: 1
+early_stop: 20
+optimizer: adamw
+scheduler:
+  name: cosine
+  t_max: 200
+grad_clip_max_norm: 1.0
+
+# Output directory following new structure
+out_dir: experiments/cifar10/spatial/geodesic/vae
+save_latents: true
+mlflow_tracking_uri: experiments/mlruns
+experiment_name: CIFAR10_Spatial_VAE_Geodesic
+run_name: spatial_vae_geodesic
+
+# Data configuration
+data:
+  name: CIFAR10
+  root: ./data
+  batch_size: 256
+  num_workers: 4
+  pin_memory: true
+  persistent_workers: true
+  augment: true
+
+# Spatial VAE Model configuration
+model:
+  in_channels: 3
+  output_image_size: 32
+  latent_dim: 32  # 32 dims per spatial location (4x4 = 16 locations)
+  enc_channels: [64, 128, 256]
+  dec_channels: [256, 128, 64]
+  recon_loss: mse
+  beta: 1.0
+  norm_type: batch
+  mse_use_sigmoid: false
+

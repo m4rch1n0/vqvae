@@ -1,0 +1,42 @@
+# IMPROVED CIFAR-10 Codebook Configuration  
+# Addresses: codebook size, graph connectivity, quantization quality
+
+# Data and model paths
+latents_path: "experiments/cifar10/improved/spatial/vae/latents_train/z.pt"
+vae_ckpt_path: "experiments/cifar10/improved/spatial/vae/checkpoints/best.pt"
+
+# Output directory
+out_dir: "experiments/cifar10/improved/spatial/codebook"
+
+# Improved VAE model configuration
+vae:
+  in_channels: 3
+  output_image_size: 32
+  latent_dim: 64        # Updated to match improved VAE
+  enc_channels: [64, 128, 256, 512]  # Deeper architecture
+  dec_channels: [512, 256, 128, 64]
+  recon_loss: "mse"
+  norm_type: "batch"
+  mse_use_sigmoid: false
+
+# IMPROVED Graph construction
+graph:
+  k: 50            # INCREASED connectivity for better geodesic paths
+  sym: "union"     # Union for maximum connectivity
+  metric: "cosine" # Cosine similarity often better for high-dim
+
+# OPTIMAL Quantization parameters for CIFAR-10
+quantize:
+  K: 2048          # QUADRUPLED codebook size (VQ-VAE standard)
+  init: "kpp"      # K-means++ initialization
+  seed: 42
+  
+  # Advanced clustering parameters
+  max_iter: 300    # More iterations for convergence
+  tol: 1e-6        # Stricter convergence tolerance
+
+# Riemannian computation with better batching
+system:
+  batch_size: 256   # Smaller batches for memory efficiency
+  chunk_size: 1000  # Process in chunks for large K
+

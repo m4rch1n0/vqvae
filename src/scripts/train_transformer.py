@@ -22,14 +22,17 @@ def main(config_path: str):
     device = get_device(cfg['system']['device'])
 
     data_cfg = cfg['data']
+    model_cfg = cfg['model']
+    
     train_loader, val_loader = get_code_loaders(
         codes_path=data_cfg['codes_path'],
         labels_path=data_cfg.get('labels_path'),
         batch_size=data_cfg['batch_size'],
         num_workers=data_cfg['num_workers'],
+        vanilla_vae=data_cfg.get('vanilla_vae', False),
+        num_tokens=model_cfg.get('num_tokens')
     )
 
-    model_cfg = cfg['model']
     model = Transformer(**model_cfg).to(device)
 
     train_cfg = cfg['training']

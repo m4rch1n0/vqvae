@@ -1,0 +1,34 @@
+# FashionMNIST Vanilla VAE Euclidean Transformer Training Config
+# Organized structure: experiments/fashionmnist/vanilla/euclidean/transformer/
+
+system:
+  seed: 42
+  device: auto
+
+data:
+  codes_path: experiments/fashionmnist/vanilla/euclidean/codebook/codes.npy
+  labels_path: experiments/fashionmnist/vanilla/euclidean/vae/latents_train/y.pt
+  batch_size: 256
+  num_workers: 0
+  vanilla_vae: true  # Use VanillaCodesDataset
+
+training:
+  epochs: 200
+  lr: 3e-4
+  weight_decay: 0.01
+  label_smoothing: 0.1
+
+out:
+  dir: experiments/fashionmnist/vanilla/euclidean/transformer
+
+run_name: transformer_vanilla_euclidean
+
+model:
+  num_classes: 10       # FashionMNIST has 10 classes
+  num_tokens: 513       # 512 codes + 1 BOS token
+  embed_dim: 512
+  n_layers: 8
+  n_head: 8
+  max_seq_len: 2        # [BOS, code]
+  dropout: 0.1
+

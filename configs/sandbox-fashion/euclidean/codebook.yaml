@@ -1,0 +1,21 @@
+# FashionMNIST Vanilla VAE Euclidean Codebook Config
+# Organized structure: experiments/fashionmnist/vanilla/euclidean/codebook/
+
+data:
+  dataset: "fashionmnist"
+  latents_path: "experiments/sandbox-fashion/euclidean/vae/latents_train/mu.pt"  # Sandbox path
+
+graph:
+  k: 10  # Smaller k for speed
+  metric: "euclidean"
+  sym: "union"
+  mode: "connectivity"
+
+quantize:
+  K: 128  # Much smaller codebook for speed
+  init: "kpp"
+  seed: 42
+
+out:
+  dir: "experiments/sandbox-fashion/euclidean/codebook"  # Sandbox output
+

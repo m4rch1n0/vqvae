@@ -1,0 +1,51 @@
+# FashionMNIST Vanilla VAE Training Config (Euclidean Pipeline)
+# Organized structure: experiments/fashionmnist/vanilla/euclidean/vae/
+
+seed: 42
+device: auto
+max_epochs: 15  # Super fast!
+lr: 1e-3  # Higher LR for faster convergence
+weight_decay: 1e-4
+log_interval: 10  # More frequent logs
+val_interval: 1
+early_stop: 5   # Stop early if no improvement
+kl_anneal_epochs: 10  # Faster KL annealing
+optimizer: adamw
+scheduler:
+  name: cosine
+  t_max: 15
+grad_clip_max_norm: 1.0
+beta: 0.5  # Lower beta for faster initial training
+
+# Output directory following new structure
+out_dir: experiments/sandbox-fashion/euclidean/vae  # Sandbox directory
+save_latents: true
+mlflow_tracking_uri: experiments/mlruns
+experiment_name: Sandbox_FashionMNIST_Fast_Test
+run_name: fast_vae_test
+
+# Data configuration for FashionMNIST - optimized for speed
+data:
+  root: ./data
+  name: FashionMNIST
+  batch_size: 512  # Larger batch for faster training
+  num_workers: 4
+  pin_memory: true
+  persistent_workers: true
+  augment: false
+
+# Smaller VAE Model for faster training
+model:
+  in_channels: 1          # Grayscale
+  output_image_size: 28   # 28x28 resolution
+  latent_dim: 64          # Smaller latent space for speed
+  enc_channels: [32, 64, 128]  # Smaller encoder
+  dec_channels: [128, 64, 32]  # Smaller decoder
+  recon_loss: mse
+  norm_type: batch
+  mse_use_sigmoid: true
+  free_bits_default: 0.1   # Lower for faster convergence
+  capacity_max_default: 10.0  # Lower capacity
+  capacity_anneal_steps_default: 10000  # Faster annealing
+  capacity_mode_default: abs
+

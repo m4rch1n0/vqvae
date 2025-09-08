@@ -1,0 +1,44 @@
+# PROGRESSIVE TRAINING STRATEGY FOR IMPROVED RESULTS
+# Multi-stage training approach for optimal performance
+
+# Stage 1: VAE Pre-training with Conservative Settings
+vae_pretrain:
+  epochs: 100
+  lr: 5e-4
+  beta: 0.05        # Very low KL weight initially
+  batch_size: 256   # Larger batches for stable gradients
+  focus: reconstruction_quality
+
+# Stage 2: VAE Fine-tuning with Increased KL
+vae_finetune:
+  epochs: 200  
+  lr: 1e-4         # Lower learning rate
+  beta: 0.2        # Gradually increase KL weight
+  batch_size: 128  # Smaller batches for fine-tuning
+  focus: latent_space_quality
+
+# Stage 3: Codebook Construction with Validation
+codebook_build:
+  K_candidates: [1024, 2048, 4096]  # Test multiple sizes
+  k_graph: [30, 50, 100]            # Test connectivity
+  validation_metric: reconstruction_mse
+  select_best: true
+
+# Stage 4: Transformer Training with Curriculum Learning
+transformer_train:
+  curriculum_stages:
+    - name: "easy_classes"
+      epochs: 100
+      classes: [0, 1, 6, 8]  # Visually distinct classes first
+      lr: 1e-3
+    - name: "all_classes" 
+      epochs: 300
+      classes: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+      lr: 1e-4
+
+# Stage 5: Multi-objective Generation and Evaluation  
+evaluation:
+  metrics: [psnr, ssim, lpips, fid, is]  # Include FID and Inception Score
+  sampling_strategies: [temperature, top_k, nucleus]
+  cross_validation: true
+

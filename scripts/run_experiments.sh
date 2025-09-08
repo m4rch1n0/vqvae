@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
+
+# Change to project root (scripts/ -> ./)
+cd "$(dirname "$0")/.."
 export PYTHONPATH=./
 
 # VQ-VAE Experiments Orchestration Script
@@ -16,10 +19,6 @@ check_completion() {
     echo "Completed: $1"
 }
 
-# Train VAE model (always respects dataset from configs/data.yaml)
-echo "Training VAE model..."
-./train_vae.sh
-check_completion "VAE training"
 
 # Run Riemannian sanity checks
 echo "Running Riemannian sanity checks..."

@@ -1,0 +1,51 @@
+# FashionMNIST Vanilla VAE Training Config (Euclidean Pipeline)
+# Organized structure: experiments/fashionmnist/vanilla/euclidean/vae/
+
+seed: 42
+device: auto
+max_epochs: 200
+lr: 3e-4
+weight_decay: 1e-4
+log_interval: 100
+val_interval: 1
+early_stop: 20
+kl_anneal_epochs: 50
+optimizer: adamw
+scheduler:
+  name: cosine
+  t_max: 200
+grad_clip_max_norm: 1.0
+beta: 1.0
+
+# Output directory following new structure
+out_dir: experiments/fashionmnist/vanilla/euclidean/vae
+save_latents: true
+mlflow_tracking_uri: experiments/mlruns
+experiment_name: FashionMNIST_Vanilla_VAE_Euclidean
+run_name: vanilla_vae_euclidean
+
+# Data configuration for FashionMNIST
+data:
+  root: ./data
+  name: FashionMNIST
+  batch_size: 256
+  num_workers: 4
+  pin_memory: true
+  persistent_workers: true
+  augment: false  # Better for grayscale datasets
+
+# Vanilla VAE Model configuration for FashionMNIST
+model:
+  in_channels: 1          # Grayscale
+  output_image_size: 28   # 28x28 resolution
+  latent_dim: 128         # Same as CIFAR-10 for comparison
+  enc_channels: [64, 128, 256]
+  dec_channels: [256, 128, 64]
+  recon_loss: mse
+  norm_type: batch
+  mse_use_sigmoid: true   # Typical for FashionMNIST
+  free_bits_default: 0.25
+  capacity_max_default: 25.0
+  capacity_anneal_steps_default: 100000
+  capacity_mode_default: abs
+
