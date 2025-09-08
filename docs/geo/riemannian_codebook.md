@@ -1,70 +1,29 @@
-## build_and_save
-Builds Riemannian geodesic codebook using decoder-induced edge weights.
+# Building a Geodesic Codebook
 
-**Signature:** `build_and_save(config: Dict[str, Any]) -> Path`
+This document explains the modern process for building a geodesic codebook, which is handled by the `src/scripts/build_codebook.py` script. This script is a core part of the automated pipelines.
 
-**Arguments:**
-- `config`: configuration dict with data, model, graph, riemannian, and quantize parameters
+## How it Works
 
-**Returns:**
-- `output_dir`: path to saved codebook artifacts
+The process creates a "geodesic" codebook by treating the VAE's latent space as a curved surface (a manifold). Instead of clustering points based on simple straight-line distances, it uses distances that approximate the true path along this curved surface.
 
-**Algorithm:**
-1. Build Euclidean k-NN graph for connectivity
-2. Re-weight edges with Riemannian distances using `edge_lengths_riemannian()`
-3. Apply K-medoids clustering on Riemannian-weighted graph
-4. Save codebook and assignments
+The algorithm follows these steps:
 
-**Note:** Implements true manifold geodesics vs graph geodesics in `build_codebook.py`.
+1.  **Build a k-NN Graph**: First, it builds a standard k-Nearest Neighbors graph using simple Euclidean (straight-line) distances. This step determines which latent vectors are considered "close" to each other and establishes the local connectivity of the manifold.
 
+2.  **Re-weight with Riemannian Metric**: Next, it re-calculates the distance (the "weight") for each connection in the graph. Instead of the straight-line distance, it uses the **Riemannian metric**, which is a better approximation of the "true" distance along the curved latent surface. This is done using the `edge_lengths_riemannian()` function, which is based on the following formula:
 
-## _reweight_graph_with_riemannian
-Re-weights k-NN graph edges with decoder-induced Riemannian distances.
+    $L_{ij} \approx 0.5 \cdot (\|J(z_i)(z_j - z_i)\|_2 + \|J(z_j)(z_j - z_i)\|_2)$
 
-**Signature:** `_reweight_graph_with_riemannian(W, z, decoder, mode="subset", max_edges=5000, batch_size=512, device=None)`
+    Here, $J(z)$ is the Jacobian of the VAE's decoder. This step effectively "stretches" the connections in the graph to match the geometry learned by the VAE.
 
-**Arguments:**
-- `W`: sparse k-NN graph with Euclidean edge weights
-- `z`: latent points (N, D)
-- `decoder`: VAE decoder network
-- `mode`: "subset" for stratified sampling, "full" for all edges
-- `max_edges`: maximum edges to reweight in subset mode
-- `batch_size`: batch size for Riemannian computation
-- `device`: computation device
+3.  **Geodesic K-Medoids Clustering**: Finally, it performs K-medoids clustering on this new, more accurate graph. The shortest paths for the clustering are now calculated along the connections of the graph (using Dijkstra's algorithm), approximating a geodesic path.
 
-**Returns:**
-- `W_riemannian`: graph with Riemannian edge weights
+This process results in a codebook where the selected "code" vectors (medoids) are chosen based on the underlying geometry of the latent space, which can lead to a more meaningful set of codes.
 
-**Formula:** $L_{ij} \approx 0.5 \cdot (\|J(z_i)(z_j - z_i)\|_2 + \|J(z_j)(z_j - z_i)\|_2)$
+## How to Run
 
-**Note:** Uses stratified sampling by Euclidean distance quantiles for representative edge coverage.
+You typically do not need to run `src/scripts/build_codebook.py` by hand. It is designed to be called automatically as part of the main end-to-end pipelines located in the `scripts/` directory.
 
+The main pipeline scripts (e.g., `run_fashionmnist_spatial_geodesic_pipeline.py`) will call this script with all the necessary parameters taken from the configuration files.
 
-## Usage Example
-
-```python
-# Build Riemannian codebook
-import yaml
-from src.scripts.build_riemannian_codebook import build_and_save
-
-with open("configs/riemannian_quantize.yaml", "r") as f:
-    config = yaml.safe_load(f)
-
-output_dir = build_and_save(config)
-```
-
-**Configuration:**
-```yaml
-data:
-  latents_path: "experiments/vae_fashion/latents_train/mu.pt"
-model:
-  checkpoint_path: "experiments/vae_fashion/checkpoints/best.pt"
-riemannian:
-  mode: "subset"     # or "full" 
-  max_edges: 5000    # computational budget
-  batch_size: 512    # memory management
-```
-
-**Performance:**
-- Subset mode: ~2-5 minutes, moderate geometric improvement
-- Full mode: ~15-30 minutes, maximum geometric fidelity
+If you need to run it manually for debugging, you can see an example of the required command-line flags in the main `README.md` file under the "Manual Pipeline" section.

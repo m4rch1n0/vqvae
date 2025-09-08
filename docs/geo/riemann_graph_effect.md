@@ -5,7 +5,7 @@ Evaluates the impact of re-weighting k-NN graph edges with decoder-induced Riema
 
 **Objective:** Support the choice of using geodesics in a-posteriori quantization by analyzing: (i) graph **connectivity**, (ii) average **shortest-path distances**.
 
-**Data:** MNIST validation set using trained VAE model (`experiments/vae_mnist/checkpoints/best.pt`) with latent dimension 16.
+**Data:** This analysis can be run on the outputs of any trained VAE. By default, it may point to legacy MNIST data (`experiments/vae_mnist/checkpoints/best.pt`), but the paths inside the script can be updated to point to any dataset's artifacts.
 
 **Graph Construction:** k-NN graph with k=10 built using Euclidean distances in latent space, then re-weighted with Riemannian edge lengths computed via decoder JVP.
 

@@ -8,7 +8,7 @@ Outputs:
 
 If labels are provided, purity/NMI/ARI are also reported.
 """
-import os
+import argparse
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional
@@ -74,7 +74,6 @@ def compute_perplexity(assign: np.ndarray, num_clusters: int) -> float:
         return 0.0
     counts = np.bincount(assign, minlength=num_clusters).astype(np.float64)
     probs = counts / counts.sum()
-    # Avoid log(0)
     nz = probs[probs > 0]
     entropy = -np.sum(nz * np.log(nz + 1e-12))
     return float(np.exp(entropy))
@@ -185,31 +184,98 @@ def plot_elbow(metrics: List[Dict], out_path: Path, tag: str) -> None:
     plt.savefig(out_path, dpi=150)
     plt.close()
 
+def auto_detect_paths(experiment_dir: Path) -> dict:
+    """Auto-detect latents and labels paths from experiment directory."""
+    exp_dir = Path(experiment_dir)
+    
+    # Find VAE directory
+    vae_dir = exp_dir / "vae"
+    if not vae_dir.exists():
+        raise FileNotFoundError(f"VAE directory not found: {vae_dir}")
+    
+    # Look for validation latents in VAE directory structure  
+    latents_paths = list(vae_dir.rglob("latents_val/z.pt"))
+    if not latents_paths:
+        raise FileNotFoundError(f"Validation latents not found in: {vae_dir}")
+    latents_path = latents_paths[0]
+    
+    # Look for labels (optional)
+    labels_paths = list(vae_dir.rglob("latents_val/y.pt"))
+    labels_path = labels_paths[0] if labels_paths else None
+    
+    return {
+        "latents_path": latents_path,
+        "labels_path": labels_path,
+    }
+
+
+def parse_args():
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(description="Geodesic K-medoids clustering analysis")
+    parser.add_argument(
+        "experiment_dir",
+        type=str,
+        help="Path to experiment directory (e.g., experiments/fashionmnist/vanilla/euclidean)"
+    )
+    parser.add_argument(
+        "--k_graph", 
+        type=int, 
+        default=10, 
+        help="k-NN graph connectivity (default: 10)"
+    )
+    parser.add_argument(
+        "--graph_sym", 
+        type=str, 
+        choices=["mutual", "union"],
+        default="mutual", 
+        help="Graph symmetrization (default: mutual)"
+    )
+    parser.add_argument(
+        "--K_values", 
+        type=str, 
+        default="32,64,128", 
+        help="Comma-separated codebook sizes (default: 32,64,128)"
+    )
+    parser.add_argument(
+        "--inits", 
+        type=str, 
+        default="kpp,random", 
+        help="Comma-separated initialization methods (default: kpp,random)"
+    )
+    parser.add_argument(
+        "--seed", 
+        type=int, 
+        default=42, 
+        help="Random seed (default: 42)"
+    )
+    return parser.parse_args()
+
+
 def main() -> Path:
-    """Run the geodesic k-medoids demo with simple env-based config."""
-    # Allow dataset-based defaults via KM_DATASET in {mnist,fashion,cifar10}
-    DS = os.environ.get("KM_DATASET", "mnist").strip().lower()
-    base = {
-        "mnist": "experiments/vae_mnist/latents_val",
-        "fashion": "experiments/vae_fashion/latents_val",
-        "cifar10": "experiments/vae_cifar10/latents_val",
-    }.get(DS, "experiments/vae_mnist/latents_val")
-
-    LATENTS_PATH = Path(os.environ.get("KM_Z_PATH", f"{base}/z.pt"))
-    LABELS_PATH = Path(os.environ.get("KM_Y_PATH", f"{base}/y.pt"))
-    ckpt_base = {
-        "mnist": "experiments/vae_mnist/checkpoints/best.pt",
-        "fashion": "experiments/vae_fashion/checkpoints/best.pt",
-        "cifar10": "experiments/vae_cifar10/checkpoints/best.pt",
-    }.get(DS, "experiments/vae_mnist/checkpoints/best.pt")
-    CHECKPOINT_PATH = Path(os.environ.get("KM_CKPT_PATH", ckpt_base))
-
-    K_GRAPH = int(os.environ.get("KM_K_GRAPH", "10"))
-    GRAPH_SYM = os.environ.get("KM_GRAPH_SYM", "mutual")  # mutual|union
-
-    K_VALUES = [int(x) for x in os.environ.get("KM_K_VALUES", "32,64,128").split(",")]
-    INITS = os.environ.get("KM_INITS", "kpp,random").split(",")
-    SEED = int(os.environ.get("KM_SEED", "42"))
+    """Run the geodesic k-medoids demo with command line config."""
+    args = parse_args()
+    
+    # Auto-detect paths from experiment directory
+    try:
+        paths = auto_detect_paths(args.experiment_dir)
+        print(f"Auto-detected paths:")
+        print(f"  Latents: {paths['latents_path']}")
+        if paths['labels_path']:
+            print(f"  Labels: {paths['labels_path']}")
+        else:
+            print(f"  Labels: Not found (will skip label-based metrics)")
+    except FileNotFoundError as e:
+        print(f"Error: {e}")
+        return Path(".")
+    
+    LATENTS_PATH = paths["latents_path"]
+    LABELS_PATH = paths["labels_path"]
+    
+    K_GRAPH = args.k_graph
+    GRAPH_SYM = args.graph_sym
+    K_VALUES = [int(x.strip()) for x in args.K_values.split(",")]
+    INITS = [x.strip() for x in args.inits.split(",")]
+    SEED = args.seed
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_dir = Path(f"demo_outputs/kmedoids_geodesic_{timestamp}")
@@ -218,7 +284,7 @@ def main() -> Path:
     print("[demo] K-medoids Geodesic Demo")
     print("[demo] Loading latents...")
     z = load_latents(LATENTS_PATH)
-    y = load_labels(LABELS_PATH)
+    y = load_labels(LABELS_PATH) if LABELS_PATH else None
     N, D = z.shape
     print(f"[demo] Loaded {N} vectors (dim={D}), labels={'yes' if y is not None else 'no'}")
 

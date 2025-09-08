@@ -36,7 +36,7 @@ def main():
     args = parser.parse_args()
 
     # Set up paths according to new structure
-    base_dir = "../experiments/fashionmnist/spatial/geodesic"
+    base_dir = "experiments/fashionmnist/spatial/geodesic"
     
     # Create directory structure
     os.makedirs(f"{base_dir}/vae", exist_ok=True)
@@ -50,16 +50,16 @@ def main():
     # Step 1: Train Spatial VAE
     if not args.skip_vae:
         run_command(
-            f"{conda_cmd}python ../src/scripts/train_vae.py --config ../configs/fashionmnist/spatial/geodesic/vae.yaml",
+            f"{conda_cmd}python src/scripts/train_vae.py --config configs/fashionmnist/spatial/geodesic/vae.yaml",
             "Training Spatial VAE for FashionMNIST"
         )
 
     # Step 2: Build Geodesic Codebook
     if not args.skip_codebook:
-        cmd = f"{conda_cmd}python ../src/scripts/build_codebook.py " \
-              f"--latents_path ../experiments/fashionmnist/spatial/geodesic/vae/spatial_vae_fashionmnist/spatial_vae_fashionmnist/latents_train/z.pt " \
-              f"--vae_ckpt_path ../experiments/fashionmnist/spatial/geodesic/vae/spatial_vae_fashionmnist/spatial_vae_fashionmnist/checkpoints/best.pt " \
-              f"--out_dir ../experiments/fashionmnist/spatial/geodesic/codebook " \
+        cmd = f"{conda_cmd}python src/scripts/build_codebook.py " \
+              f"--latents_path experiments/fashionmnist/spatial/geodesic/vae/spatial_vae_fashionmnist/spatial_vae_fashionmnist/latents_train/z.pt " \
+              f"--vae_ckpt_path experiments/fashionmnist/spatial/geodesic/vae/spatial_vae_fashionmnist/spatial_vae_fashionmnist/checkpoints/best.pt " \
+              f"--out_dir experiments/fashionmnist/spatial/geodesic/codebook " \
               f"--in_channels 1 --output_image_size 28 --latent_dim 16 " \
               f"--enc_channels 64 128 256 --dec_channels 256 128 64 " \
               f"--recon_loss mse --norm_type batch " \
@@ -70,21 +70,21 @@ def main():
     # Step 3: Train Transformer
     if not args.skip_transformer:
         run_command(
-            f"{conda_cmd}python ../src/scripts/train_transformer.py --config ../configs/fashionmnist/spatial/geodesic/transformer.yaml",
+            f"{conda_cmd}python src/scripts/train_transformer.py --config configs/fashionmnist/spatial/geodesic/transformer.yaml",
             "Training Transformer on Spatial Geodesic Codes"
         )
 
     # Step 4: Generate Samples
     if not args.skip_generation:
         run_command(
-            f"{conda_cmd}python ../src/scripts/generate_samples.py --config ../configs/fashionmnist/spatial/geodesic/generate.yaml",
+            f"{conda_cmd}python src/scripts/generate_samples.py --config configs/fashionmnist/spatial/geodesic/generate.yaml",
             "Generating Samples"
         )
 
     # Step 5: Evaluate Results
     if not args.skip_evaluation:
         run_command(
-            f"{conda_cmd}python ../src/eval/evaluate_model.py --config ../configs/fashionmnist/spatial/geodesic/evaluate.yaml",
+            f"{conda_cmd}python src/eval/evaluate_model.py --config configs/fashionmnist/spatial/geodesic/evaluate.yaml",
             "Evaluating Generated Samples"
         )
 

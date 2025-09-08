@@ -1,10 +1,10 @@
 # Standard configuration for codebook comparison demo
 # Geodesic vs Euclidean quantization comparison
 
-# Data paths
+# Data paths (update these to point to your actual experiment outputs)
 data:
-  latents_path: "experiments/vae_mnist/latents_val/z.pt"
-  checkpoint_path: "experiments/vae_mnist/checkpoints/best.pt"
+  latents_path: "experiments/fashionmnist/vanilla/euclidean/vae/latents_val/z.pt"
+  checkpoint_path: "experiments/fashionmnist/vanilla/euclidean/vae/checkpoints/best.pt"
 
 # Quantization parameters
 quantization:
