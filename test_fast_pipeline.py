@@ -1,14 +1,14 @@
 
 """
 Fast Testing Pipeline for FashionMNIST Vanilla VAE Euclidean 
-Ultra-fast configuration for testing evaluation scripts integration
+Ultra-fast configuration for testing evaluation scripts integration 
+Just used as sandbox to see if the training and evaluation scripts are working
 """
 
 import os
 import sys
 import subprocess
 import argparse
-from pathlib import Path
 
 def run_command(cmd, description, critical=True):
     """Run a command with optional critical handling"""

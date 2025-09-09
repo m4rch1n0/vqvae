@@ -16,7 +16,7 @@ env/
 .DS_Store
 
 # Data and experiment artifacts
-data/
+/data/
 
 /experiments/
 demo_outputs/

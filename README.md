@@ -50,12 +50,31 @@ vqvae/
 
 The end-to-end pipelines are orchestrated by the scripts in `scripts/`. These scripts expect to be run from within the `scripts/` directory (paths inside use `../`).
 
+### 0. Environment creation
+
+```bash
+conda create -n "environment_name" python=3.11
+```
+
 ### 1. Environment Setup
 
 ```bash
-conda activate rocm_env
+conda activate "environment_name"
 ./scripts/setup_env.sh
+
+
+# Install project in development mode (required for demos)
+pip install -e .
 ```
+
+> **Note:** If you encounter a "Permission denied" error when running any shell script (e.g., `./scripts/setup_env.sh`), you may need to make it executable first:
+>
+> ```bash
+> chmod +x ./scripts/setup_env.sh
+> ```
+> Repeat this for any other script as needed.
+```
+
 
 ### 2. Download Data
 
