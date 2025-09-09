@@ -64,8 +64,8 @@ def main():
     # Step 2: Build Geodesic Codebook
     if not args.skip_codebook:
         cmd = f"{conda_cmd}python src/scripts/build_codebook.py " \
-              f"--latents_path experiments/fashionmnist/spatial/geodesic/vae/spatial_vae_fashionmnist/spatial_vae_fashionmnist/latents_train/z.pt " \
-              f"--vae_ckpt_path experiments/fashionmnist/spatial/geodesic/vae/spatial_vae_fashionmnist/spatial_vae_fashionmnist/checkpoints/best.pt " \
+              f"--latents_path experiments/fashionmnist/spatial/geodesic/vae/spatial_vae_fashionmnist/latents_train/z.pt " \
+              f"--vae_ckpt_path experiments/fashionmnist/spatial/geodesic/vae/spatial_vae_fashionmnist/checkpoints/best.pt " \
               f"--out_dir experiments/fashionmnist/spatial/geodesic/codebook " \
               f"--in_channels 1 --output_image_size 28 --latent_dim 16 " \
               f"--enc_channels 64 128 256 --dec_channels 256 128 64 " \

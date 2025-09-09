@@ -41,9 +41,11 @@ def main():
     
     args = parser.parse_args()
 
-    # Setup paths (running from scripts/ directory)
-    baseline_dir = "../baseline VQVAE/vqvae_cifar10_clean"
-    output_dir = "../experiments/cifar10/baseline_vqvae"
+    # Setup paths - make them absolute to avoid path issues
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(script_dir)
+    baseline_dir = os.path.join(project_root, "baseline VQVAE", "vqvae_cifar10_clean")
+    output_dir = os.path.join(project_root, "experiments", "cifar10", "baseline_vqvae")
     
     # Create output directory structure
     os.makedirs(f"{output_dir}/evaluation", exist_ok=True)
@@ -81,8 +83,9 @@ def main():
 
     # Step 3: Run Comparison with Other Approaches
     if not args.skip_comparison:
+        comparison_dir = os.path.join(project_root, "experiments", "cifar10", "comparison")
         comparison_cmd = f"python compare_all_approaches.py " \
-                        f"--out_dir ../experiments/cifar10/comparison " \
+                        f"--out_dir '{comparison_dir}' " \
                         f"--approaches baseline vanilla_euclidean vanilla_geodesic spatial_geodesic"
         
         run_command(comparison_cmd, "Comparing All Approaches", critical=False)
@@ -90,7 +93,7 @@ def main():
     print(f"\n{'='*60}")
     print("BASELINE VQ-VAE PIPELINE COMPLETED!")
     print(f"Results saved to: {output_dir}/")
-    print(f"Comparison results: ../experiments/cifar10/comparison/")
+    print(f"Comparison results: {comparison_dir}/")
     print(f"{'='*60}")
 
 

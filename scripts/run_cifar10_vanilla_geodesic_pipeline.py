@@ -54,7 +54,28 @@ def main():
     # Step 1: Train VAE
     if not args.skip_vae:
         run_command(
-            f"{conda_cmd}python src/scripts/traieate_samples.py --config configs/cifar10/vanilla/geodesic/generate.yaml",
+            f"{conda_cmd}python src/scripts/train_vanilla_vae.py --config configs/cifar10/vanilla/geodesic/vae.yaml",
+            "Training Vanilla VAE for CIFAR-10"
+        )
+
+    # Step 2: Build Geodesic Codebook
+    if not args.skip_codebook:
+        run_command(
+            f"{conda_cmd}python src/training/build_riemannian_codebook_legacy.py --config configs/cifar10/vanilla/geodesic/codebook.yaml",
+            "Building Geodesic Codebook"
+        )
+
+    # Step 3: Train Transformer
+    if not args.skip_transformer:
+        run_command(
+            f"{conda_cmd}python src/scripts/train_transformer.py --config configs/cifar10/vanilla/geodesic/transformer.yaml",
+            "Training Transformer on Geodesic Codes"
+        )
+
+    # Step 4: Generate Samples
+    if not args.skip_generation:
+        run_command(
+            f"{conda_cmd}python src/scripts/generate_samples.py --config configs/cifar10/vanilla/geodesic/generate.yaml",
             "Generating Samples"
         )
 
