@@ -55,8 +55,6 @@ def load_images(
             for class_id in range(num_classes):
                 class_imgs = class_samples[class_id][:samples_per_class]
                 images_by_class.extend(class_imgs)
-                if class_id < 3:  # Debug first few classes
-                    print(f"  Real class {class_id}: {len(class_imgs)} samples, first sample mean: {class_imgs[0].mean():.4f}")
             
             return torch.stack(images_by_class)
         else:
@@ -78,7 +76,6 @@ def load_images(
         cell_w = grid_w // samples_per_class
         
         images = []
-        print(f"Parsing grid: {num_rows} rows x {samples_per_class} cols, cell size: {cell_h}x{cell_w}")
         for row in range(num_rows):
             for col in range(samples_per_class):
                 # Calculate position based on actual grid layout
@@ -88,8 +85,6 @@ def load_images(
                 # Resize to target size
                 img = transforms.functional.resize(img, (size, size))
                 images.append(img)
-                if row == 0 and col < 3:  # Debug first few images
-                    print(f"  Image[{row},{col}] (class {row}, sample {col}): mean={img.mean():.4f}")
         
         return torch.stack(images)
 
@@ -141,31 +136,18 @@ def main(config_path: str):
     generated_lpips = preprocess_for_lpips(generated_images)
     real_lpips = preprocess_for_lpips(real_images)
 
-    print(f"Shape for LPIPS (generated): {generated_lpips.shape}")
-    print(f"Shape for LPIPS (real): {real_lpips.shape}")
-
-    # Debug: Check tensor properties
-    print(f"Generated images - Shape: {generated_images.shape}, Min: {generated_images.min():.4f}, Max: {generated_images.max():.4f}")
-    print(f"Real images - Shape: {real_images.shape}, Min: {real_images.min():.4f}, Max: {real_images.max():.4f}")
-    
-    # Metrics
+    # Compute metrics
     psnr_val = psnr(generated_images, real_images)
     ssim_val = ssim_simple(generated_images, real_images)
     lpips_val = lpips_fn(generated_lpips, real_lpips).mean()
-    
-    print(f"SSIM calculation details:")
-    print(f"  Generated mean: {generated_images.mean():.4f}, std: {generated_images.std():.4f}")
-    print(f"  Real mean: {real_images.mean():.4f}, std: {real_images.std():.4f}")
-    print(f"  Cross-correlation: {((generated_images - generated_images.mean())*(real_images - real_images.mean())).mean():.4f}")
 
     results = {
         "PSNR": f"{psnr_val:.4f}",
         "SSIM": f"{ssim_val:.4f}",
         "LPIPS": f"{lpips_val:.4f}"
     }
-    print("Evaluation Results:")
-    for key, value in results.items():
-        print(f"  {key}: {value}")
+    
+    print(f"PSNR: {psnr_val:.4f}, SSIM: {ssim_val:.4f}, LPIPS: {lpips_val:.4f}")
 
     # Save results to a file
     out_dir = Path(config['out_dir'])
@@ -197,7 +179,7 @@ def main(config_path: str):
         comparison_grid = torch.cat([real_images[:8], generated_images[:8]], 0)
         save_image(comparison_grid, out_dir / "comparison_grid.png", nrow=8)
     
-    print(f"Saved results to {out_dir}")
+    print(f"Results saved to {out_dir}")
 
 
 if __name__ == "__main__":

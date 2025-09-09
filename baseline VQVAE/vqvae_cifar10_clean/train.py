@@ -37,7 +37,7 @@ def train_one_epoch(model, loader, opt, scaler, device, grad_clip, n_codes, samp
             x_rec, loss_vq, idx, z_q, z_e = model(x)
             loss_rec = F.l1_loss(x_rec, x)  # L1 for sharper reconstructions
             loss = loss_rec + loss_vq
-        # ---- update latent sample bank with encoder latents (z_e) ----
+        # update latent sample bank with encoder latents (z_e)
         with torch.no_grad():
             flat = z_e.detach().permute(0,2,3,1).contiguous().view(-1, z_e.size(1))
             take = min(256, flat.size(0))
@@ -48,7 +48,7 @@ def train_one_epoch(model, loader, opt, scaler, device, grad_clip, n_codes, samp
                 sample_bank = torch.cat([sample_bank, sel], dim=0)
                 if sample_bank.size(0) > max_bank:
                     sample_bank = sample_bank[-max_bank:]
-        # ---- codebook metrics ----
+        # codebook metrics
         quant_mse = F.mse_loss(z_q.detach(), z_e.detach())
         hist = torch.bincount(idx.view(-1), minlength=n_codes).float().to(x.device)
         usage = (hist > 0).float().mean()

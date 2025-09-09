@@ -1,12 +1,10 @@
-#!/usr/bin/env python3
+
 """
-Evaluate VAE continuous reconstruction quality - Adapted for pipeline integration
-Compatible with unified config files from the pipeline
+Evaluate VAE reconstruction quality
 """
 import argparse
 import yaml
 import torch
-import numpy as np
 from pathlib import Path
 from src.models.vae import VAE
 from src.eval.metrics import psnr, ssim_simple
@@ -77,31 +75,27 @@ def evaluate_latent_reconstructions(
     return torch.cat(reconstructions, 0)
 
 
-def assess_quality(psnr_value: float, ssim_value: float) -> tuple[str, str, bool]:
+def assess_quality(psnr_value: float, ssim_value: float) -> tuple[str, bool]:
     """Assess VAE quality and provide recommendation."""
     if psnr_value > 20:
         quality = "excellent"
-        status = "EXCELLENT: PSNR > 20 dB indicates high-quality latent space"
         proceed = True
     elif psnr_value > 15:
         quality = "good"  
-        status = "GOOD: PSNR > 15 dB indicates decent latent space"
         proceed = True
     elif psnr_value > 10:
         quality = "acceptable"
-        status = "ACCEPTABLE: PSNR > 10 dB, but could be improved"
         proceed = True
     else:
         quality = "poor"
-        status = "POOR: PSNR < 10 dB, retraining recommended"
         proceed = False
 
-    return quality, status, proceed
+    return quality, proceed
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Evaluate VAE continuous reconstruction quality")
-    parser.add_argument("--experiment", required=True, help="Experiment directory (e.g., experiments/sandbox-fashion/euclidean)")
+    parser = argparse.ArgumentParser(description="Evaluate VAE reconstruction quality")
+    parser.add_argument("--experiment", required=True, help="Experiment directory")
     parser.add_argument("--config", help="Config file path (auto-detected if not provided)")
     parser.add_argument("--max_samples", type=int, default=1000, help="Max samples to evaluate")
     parser.add_argument("--batch_size", type=int, default=512, help="Batch size for inference")
@@ -118,7 +112,7 @@ def main():
             # Try alternative paths
             config_path = f"configs/sandbox-fashion/euclidean/vae.yaml"
 
-    # Load unified configuration
+    # Load configuration
     try:
         config = load_config(config_path)
         vae_cfg = config.get("model", {})
@@ -128,13 +122,11 @@ def main():
         return 1
 
     dataset_name = data_cfg.get("name", "Unknown")
-    print(f"=== {dataset_name.upper()} VAE QUALITY ASSESSMENT ===")
 
     # Load model
     checkpoint_path = f"{args.experiment}/vae/checkpoints/best.pt"
     try:
         model, epoch = load_vae_model(checkpoint_path, vae_cfg, device)
-        print(f"Loaded checkpoint from epoch {epoch}")
     except Exception as e:
         print(f"Error loading checkpoint: {e}")
         return 1
@@ -144,33 +136,25 @@ def main():
     try:
         mu_val = torch.load(latents_dir / "mu.pt", map_location="cpu").float()
         z_val = torch.load(latents_dir / "z.pt", map_location="cpu").float() 
-        print(f"Loaded validation latents: mu {mu_val.shape}, z {z_val.shape}")
     except Exception as e:
         print(f"Error loading latents: {e}")
         return 1
 
-    # Evaluate continuous reconstruction quality
-    print("\nEvaluating continuous reconstruction quality...")
-
+    # Evaluate reconstruction quality
     x_from_z = evaluate_latent_reconstructions(model, z_val, data_cfg, device, args.max_samples, args.batch_size)
     x_from_mu = evaluate_latent_reconstructions(model, mu_val, data_cfg, device, args.max_samples, args.batch_size)
 
-    # Compare z vs mu reconstructions (continuous baseline)
+    # Compare z vs mu reconstructions
     z_mu_psnr = psnr(x_from_z, x_from_mu)
     z_mu_ssim = ssim_simple(x_from_z, x_from_mu)
 
-    print(f"\n=== RESULTS ===")
-    print(f"Continuous baseline (z vs mu): PSNR {z_mu_psnr:.2f} dB, SSIM {z_mu_ssim:.4f}")
-    print(f"Reconstruction range: [{x_from_mu.min():.3f}, {x_from_mu.max():.3f}]")
-    print(f"Evaluated {len(x_from_mu)} samples")
+    print(f"PSNR: {z_mu_psnr:.2f} dB, SSIM: {z_mu_ssim:.4f}")
 
     # Quality assessment
-    quality, status, proceed = assess_quality(z_mu_psnr, z_mu_ssim)
+    quality, proceed = assess_quality(z_mu_psnr, z_mu_ssim)
 
-    print(f"\n=== QUALITY ASSESSMENT ===")
-    print(status)
-    print(f"\nQUALITY RATING: {quality.upper()}")
-    print(f'RECOMMENDATION: {"PROCEED with codebook construction" if proceed else "RETRAIN VAE with more epochs/better hyperparameters"}')
+    print(f"Quality: {quality.upper()}")
+    print(f'Recommendation: {"PROCEED" if proceed else "RETRAIN"}')
 
     # Save results
     results = {
@@ -188,7 +172,7 @@ def main():
     import json
     with open(output_file, "w") as f:
         json.dump(results, f, indent=2)
-    print(f"\nResults saved to: {output_file}")
+    print(f"Results saved to {output_file}")
 
     return 0 if proceed else 1
 

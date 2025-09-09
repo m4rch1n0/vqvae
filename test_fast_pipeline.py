@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+
 """
 Fast Testing Pipeline for FashionMNIST Vanilla VAE Euclidean 
 Ultra-fast configuration for testing evaluation scripts integration

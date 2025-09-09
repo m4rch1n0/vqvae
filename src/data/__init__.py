@@ -15,10 +15,9 @@ _VALID_NAMES = {"MNIST", "FashionMNIST", "CIFAR10"}
 Data loading and preprocessing utilities.
 """
 
-from .mnist import get_mnist_loaders
 from .factory import get_data_loaders
 
-__all__ = ["get_mnist_loaders", "get_data_loaders"]
+__all__ = ["get_data_loaders"]
 
 def get_code_loaders(
     codes_path: str,

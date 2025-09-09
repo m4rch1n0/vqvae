@@ -104,7 +104,7 @@ python run_cifar10_vanilla_euclidean_pipeline.py \
 
 Outputs are written under `experiments/<dataset>/<variant>/<distance>/...` and include `vae/`, `codebook/`, `transformer/`, and `evaluation/` subfolders.
 
-### Advanced: Manual Pipeline
+### Manual Pipeline
 
 If you prefer running each step manually, use the per-step scripts and configs:
 

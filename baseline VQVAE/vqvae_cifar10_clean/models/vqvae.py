@@ -2,9 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-# -------------------------
 #  ResNet-style blocks
-# -------------------------
 class ResBlock(nn.Module):
     def __init__(self, ch):
         super().__init__()
@@ -51,9 +49,7 @@ class Decoder(nn.Module):
         x = self.head(h)
         return x
 
-# -------------------------
 #  Vector Quantizer EMA
-# -------------------------
 class VectorQuantizerEMA(nn.Module):
     def __init__(self, n_codes=512, code_dim=128, decay=0.99, eps=1e-5, beta=0.25):
         super().__init__()
@@ -75,7 +71,7 @@ class VectorQuantizerEMA(nn.Module):
         z = z_e.permute(0,2,3,1).contiguous()  # (B,H,W,C)
         flat = z.view(-1, C)                   # (BHW, C)
 
-        # distanza ai centroidi
+        # distance to the centroids
         # ||x - e||^2 = x^2 + e^2 - 2xe
         flat = flat.float()
         embed = self.embed.float()
@@ -98,14 +94,14 @@ class VectorQuantizerEMA(nn.Module):
                 embed_sum = flat.t() @ one_hot
                 self.embed_avg.mul_(self.decay).add_(embed_sum.t(), alpha=1-self.decay)
 
-                # normalizza con guardie numeriche
+                # normalize with numerical guards
                 n = self.cluster_size.sum()
                 denom = n + self.n_codes * self.eps
                 cluster_size = (self.cluster_size + self.eps) / denom * n
-                # evita divisioni per zero
+                # avoid division by zero
                 cluster_size_safe = cluster_size.unsqueeze(1).clamp_min(self.eps)
                 embed_normalized = self.embed_avg / cluster_size_safe
-                # pulizia numerica
+                # numerical cleanup
                 embed_normalized = torch.nan_to_num(embed_normalized, nan=0.0, posinf=1.0, neginf=-1.0)
                 embed_normalized = embed_normalized.clamp_(-2.0, 2.0)
                 self.embed.copy_(embed_normalized)
@@ -113,7 +109,7 @@ class VectorQuantizerEMA(nn.Module):
         # Straight-through estimator
         z_q_st = z_e + (z_q - z_e).detach()
 
-        # losses: commitment only (EMA style)
+        # losses
         loss_commit = F.mse_loss(z_q_st.detach().float(), z_e.float())
         loss = self.beta * loss_commit
         return z_q_st, loss, idx.view(B, H, W), z_q, z_e

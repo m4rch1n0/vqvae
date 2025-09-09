@@ -27,11 +27,6 @@ outputs/
 *.ckpt
 *.log
 *.png
-STRATEGY.md
-CONFIG_STRUCTURE.md
-FASHIONMNIST_SUPPORT.md
-IMPROVEMENT_PLAN.md
-ANALYSIS.md
 template/
 
 # Local datasets and archives

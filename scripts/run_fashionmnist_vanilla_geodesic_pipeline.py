@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+
 """
 FashionMNIST Vanilla VAE Geodesic Pipeline
 Complete pipeline from VAE training to evaluation
@@ -43,8 +43,8 @@ def main():
     
     args = parser.parse_args()
 
-    # Set up paths according to new structure
-    base_dir = "../experiments/fashionmnist/vanilla/geodesic"
+
+    base_dir = "experiments/fashionmnist/vanilla/geodesic"
     
     # Create directory structure
     os.makedirs(f"{base_dir}/vae", exist_ok=True)
@@ -58,14 +58,14 @@ def main():
     # Step 1: Train VAE
     if not args.skip_vae:
         run_command(
-            f"{conda_cmd}python ../src/scripts/train_vanilla_vae.py --config ../configs/fashionmnist/vanilla/geodesic/vae.yaml",
+            f"{conda_cmd}python src/scripts/train_vanilla_vae.py --config configs/fashionmnist/vanilla/geodesic/vae.yaml",
             "Training Vanilla VAE for FashionMNIST"
         )
 
     # Step 1.5: VAE Quality Assessment  
     if not args.skip_vae_check:
         vae_quality_ok = run_command(
-            f"{conda_cmd}python ../src/eval/evaluate_vae_quality.py --experiment ../{base_dir}",
+            f"{conda_cmd}python src/eval/evaluate_vae_quality.py --experiment {base_dir}",
             "VAE Quality Assessment",
             critical=False
         )
@@ -75,14 +75,14 @@ def main():
     # Step 2: Build Geodesic Codebook
     if not args.skip_codebook:
         run_command(
-            f"{conda_cmd}python ../src/training/build_riemannian_codebook_legacy.py --config ../configs/fashionmnist/vanilla/geodesic/codebook.yaml",
+            f"{conda_cmd}python src/training/build_riemannian_codebook_legacy.py --config configs/fashionmnist/vanilla/geodesic/codebook.yaml",
             "Building Geodesic Codebook"
         )
 
     # Step 2.5: Quantization Loss Analysis
     if not args.skip_quantization_analysis:
         quant_analysis_ok = run_command(
-            f"{conda_cmd}python ../src/eval/evaluate_quantization_loss.py --experiment ../{base_dir} --dataset fashionmnist",
+            f"{conda_cmd}python src/eval/evaluate_quantization_loss.py --experiment {base_dir} --dataset fashionmnist",
             "Quantization Loss Analysis", 
             critical=False
         )
@@ -92,7 +92,7 @@ def main():
     # Step 2.6: Codebook Health Check
     if not args.skip_codebook_health:
         codebook_health_ok = run_command(
-            f"{conda_cmd}python ../src/eval/evaluate_codebook_health.py --experiment ../{base_dir} --dataset fashionmnist",
+            f"{conda_cmd}python src/eval/evaluate_codebook_health.py --experiment {base_dir} --dataset fashionmnist",
             "Codebook Health Check",
             critical=False
         )
@@ -102,21 +102,21 @@ def main():
     # Step 3: Train Transformer
     if not args.skip_transformer:
         run_command(
-            f"{conda_cmd}python ../src/scripts/train_transformer.py --config ../configs/fashionmnist/vanilla/geodesic/transformer.yaml",
+            f"{conda_cmd}python src/scripts/train_transformer.py --config configs/fashionmnist/vanilla/geodesic/transformer.yaml",
             "Training Transformer on Geodesic Codes"
         )
 
     # Step 4: Generate Samples
     if not args.skip_generation:
         run_command(
-            f"{conda_cmd}python ../src/scripts/generate_samples.py --config ../configs/fashionmnist/vanilla/geodesic/generate.yaml",
+            f"{conda_cmd}python src/scripts/generate_samples.py --config configs/fashionmnist/vanilla/geodesic/generate.yaml",
             "Generating Samples"
         )
 
     # Step 5: Evaluate Results
     if not args.skip_evaluation:
         run_command(
-            f"{conda_cmd}python ../src/eval/evaluate_model.py --config ../configs/fashionmnist/vanilla/geodesic/evaluate.yaml",
+            f"{conda_cmd}python src/eval/evaluate_model.py --config configs/fashionmnist/vanilla/geodesic/evaluate.yaml",
             "Evaluating Generated Samples"
         )
 

@@ -1,14 +1,12 @@
-#!/usr/bin/env python3
+
 """
 FashionMNIST Spatial VAE Geodesic Pipeline
 Complete pipeline from VAE training to evaluation
 """
-
 import os
 import sys
 import subprocess
 import argparse
-from pathlib import Path
 
 def run_command(cmd, description):
     """Run a command and show real-time progress"""
@@ -35,7 +33,7 @@ def main():
     
     args = parser.parse_args()
 
-    # Set up paths according to new structure
+
     base_dir = "experiments/fashionmnist/spatial/geodesic"
     
     # Create directory structure

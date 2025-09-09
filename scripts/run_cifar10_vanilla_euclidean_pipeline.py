@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+
 """
 CIFAR-10 Vanilla VAE Euclidean Pipeline
 Complete pipeline from VAE training to evaluation
@@ -35,7 +35,7 @@ def main():
     
     args = parser.parse_args()
 
-    # Set up paths according to new structure
+
     base_dir = "../experiments/cifar10/vanilla/euclidean"
     
     # Create directory structure

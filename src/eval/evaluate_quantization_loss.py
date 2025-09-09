@@ -1,7 +1,6 @@
-#!/usr/bin/env python3
+
 """
-Evaluate quantization loss - Adapted for pipeline integration
-Compares ground truth vs continuous vs quantized reconstructions
+Evaluate quantization loss
 """
 import argparse
 import json
@@ -64,8 +63,8 @@ def unnormalize_images(x: torch.Tensor, dataset_name: str, apply_sigmoid: bool) 
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Evaluate quantization loss between continuous and quantized reconstructions")
-    parser.add_argument("--experiment", required=True, help="Experiment directory (e.g., experiments/sandbox-fashion/euclidean)")
+    parser = argparse.ArgumentParser(description="Evaluate quantization loss")
+    parser.add_argument("--experiment", required=True, help="Experiment directory")
     parser.add_argument("--dataset", default="fashionmnist", help="Dataset name")
     parser.add_argument("--batch_size", type=int, default=512, help="Batch size for inference")
     parser.add_argument("--max_samples", type=int, default=1000, help="Maximum samples to evaluate")
@@ -74,41 +73,34 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     experiment_dir = Path(args.experiment)
 
-    print(f"=== {args.dataset.upper()} QUANTIZATION LOSS ANALYSIS ===")
-
-    # Load VAE model with auto-detection
+    # Load VAE model
     checkpoint_path = experiment_dir / "vae" / "checkpoints" / "best.pt"
     vae, vae_config = load_vae_from_checkpoint(str(checkpoint_path), device=device)
     
     if vae is None:
-        print("Failed to load VAE model")
+        print("Error: Failed to load VAE model")
         return 1
 
-    # Load latents and codebook (with PyTorch 2.6+ compatibility)
+    # Load latents and codebook
     try:
         z_val = torch.load(experiment_dir / "vae" / "latents_val" / "z.pt", map_location="cpu", weights_only=False).float()
         codebook = torch.load(experiment_dir / "codebook" / "codebook.pt", map_location="cpu", weights_only=False)
         z_medoid = codebook["z_medoid"].float()
-        print(f"Loaded validation latents: {z_val.shape}")
-        print(f"Loaded codebook with {z_medoid.shape[0]} medoids")
     except Exception as e:
         print(f"Error loading latents/codebook: {e}")
         return 1
 
-    # Load codes if available, otherwise compute them
+    # Load or compute codes
     codes_path = experiment_dir / "codebook" / "codes.npy"
     if codes_path.exists():
         codes_np = np.load(codes_path)
         if codes_np.ndim > 1:
             codes_np = codes_np.reshape(-1)
         codes = torch.from_numpy(codes_np).long()
-        print(f"Loaded pre-computed codes: {codes.shape}")
     else:
-        print("Computing codes using nearest medoid assignment...")
         codes = nearest_medoid_assign(z_val, z_medoid, batch_size=8192)
-        print(f"Computed codes: {codes.shape}")
 
-    # Load real dataset samples (match VAE output channels)
+    # Load real dataset samples
     try:
         x_real = load_dataset_samples(args.dataset, args.max_samples)
         # Ensure channel consistency with VAE reconstructions
@@ -116,7 +108,6 @@ def main():
             x_real = x_real.mean(dim=1, keepdim=True)  # Convert RGB to grayscale
         elif vae_config['in_channels'] == 3 and x_real.size(1) == 1:
             x_real = x_real.repeat(1, 3, 1, 1)  # Convert grayscale to RGB
-        print(f"Loaded {x_real.shape[0]} real dataset samples (adjusted to {x_real.shape[1]} channels)")
     except Exception as e:
         print(f"Error loading dataset: {e}")
         return 1
@@ -124,13 +115,12 @@ def main():
     # Build quantized latents
     zq_val = z_medoid[codes]
 
-    # Determine post-processing based on VAE configuration
+    # Determine post-processing
     recon_loss = vae_config.get('recon_loss', 'mse').lower()
     mse_use_sigmoid = vae_config.get('mse_use_sigmoid', True)
     apply_sigmoid = (recon_loss == "bce") or mse_use_sigmoid
 
-    # Batch inference for reconstructions
-    print("Computing reconstructions...")
+    # Compute reconstructions
     x_cont_list, x_quant_list = [], []
     n_samples = min(len(z_val), args.max_samples)
     
@@ -156,7 +146,6 @@ def main():
     x_real = unnormalize_images(x_real, args.dataset, apply_sigmoid).cpu()
 
     # Compute metrics
-    print("Computing metrics...")
     metrics = {
         "dataset": args.dataset,
         "samples_evaluated": n_samples,
@@ -169,23 +158,23 @@ def main():
         "ssim_continuous_vs_quantized": float(f"{ssim_simple(x_continuous, x_quantized):.6f}"),
     }
 
-    print("=== QUANTIZATION LOSS RESULTS ===")
-    print(f"Real vs Continuous:  PSNR {metrics['psnr_real_vs_continuous']:.2f} dB, SSIM {metrics['ssim_real_vs_continuous']:.4f}")
-    print(f"Real vs Quantized:   PSNR {metrics['psnr_real_vs_quantized']:.2f} dB, SSIM {metrics['ssim_real_vs_quantized']:.4f}")
+    # Results summary
+    print(f"Real vs Continuous: PSNR {metrics['psnr_real_vs_continuous']:.2f} dB, SSIM {metrics['ssim_real_vs_continuous']:.4f}")
+    print(f"Real vs Quantized: PSNR {metrics['psnr_real_vs_quantized']:.2f} dB, SSIM {metrics['ssim_real_vs_quantized']:.4f}")
     print(f"Continuous vs Quantized: PSNR {metrics['psnr_continuous_vs_quantized']:.2f} dB, SSIM {metrics['ssim_continuous_vs_quantized']:.4f}")
 
-    # Assess quantization loss
+    # Assessment
     cont_quant_psnr = metrics['psnr_continuous_vs_quantized']
     if cont_quant_psnr > 25:
-        assessment = "EXCELLENT: Very low quantization loss"
+        assessment = "EXCELLENT"
     elif cont_quant_psnr > 20:
-        assessment = "GOOD: Acceptable quantization loss"
+        assessment = "GOOD"
     elif cont_quant_psnr > 15:
-        assessment = "MODERATE: Some quantization loss, consider larger codebook"
+        assessment = "MODERATE"
     else:
-        assessment = "HIGH: Significant quantization loss, increase codebook size"
+        assessment = "HIGH"
 
-    print(f"\nQUANTIZATION ASSESSMENT: {assessment}")
+    print(f"Quantization loss: {assessment}")
 
     # Save results
     output_dir = experiment_dir / "evaluation"
@@ -194,9 +183,7 @@ def main():
     with open(output_dir / "quantization_analysis.json", "w") as f:
         json.dump(metrics, f, indent=2)
     
-    print(f"Results saved to: {output_dir}/")
-    print(f"   Metrics: quantization_analysis.json")
-
+    print(f"Results saved to {output_dir}/quantization_analysis.json")
     return 0
 
 

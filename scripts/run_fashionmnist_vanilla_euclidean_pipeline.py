@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+
 """
 FashionMNIST Vanilla VAE Euclidean Pipeline
 Complete pipeline from VAE training to evaluation
@@ -35,8 +35,8 @@ def main():
     
     args = parser.parse_args()
 
-    # Set up paths according to new structure
-    base_dir = "../experiments/fashionmnist/vanilla/euclidean"
+
+    base_dir = "experiments/fashionmnist/vanilla/euclidean"
     
     # Create directory structure
     os.makedirs(f"{base_dir}/vae", exist_ok=True)
@@ -50,35 +50,35 @@ def main():
     # Step 1: Train VAE
     if not args.skip_vae:
         run_command(
-            f"{conda_cmd}python ../src/scripts/train_vanilla_vae.py --config ../configs/fashionmnist/vanilla/euclidean/vae.yaml",
+            f"{conda_cmd}python src/scripts/train_vanilla_vae.py --config configs/fashionmnist/vanilla/euclidean/vae.yaml",
             "Training Vanilla VAE for FashionMNIST"
         )
 
     # Step 2: Build Euclidean Codebook
     if not args.skip_codebook:
         run_command(
-            f"{conda_cmd}python ../src/training/build_codebook_legacy.py --config ../configs/fashionmnist/vanilla/euclidean/codebook.yaml",
+            f"{conda_cmd}python src/training/build_codebook_legacy.py --config configs/fashionmnist/vanilla/euclidean/codebook.yaml",
             "Building Euclidean Codebook"
         )
 
     # Step 3: Train Transformer
     if not args.skip_transformer:
         run_command(
-            f"{conda_cmd}python ../src/scripts/train_transformer.py --config ../configs/fashionmnist/vanilla/euclidean/transformer.yaml",
+            f"{conda_cmd}python src/scripts/train_transformer.py --config configs/fashionmnist/vanilla/euclidean/transformer.yaml",
             "Training Transformer on Euclidean Codes"
         )
 
     # Step 4: Generate Samples
     if not args.skip_generation:
         run_command(
-            f"{conda_cmd}python ../src/scripts/generate_samples.py --config ../configs/fashionmnist/vanilla/euclidean/generate.yaml",
+            f"{conda_cmd}python src/scripts/generate_samples.py --config configs/fashionmnist/vanilla/euclidean/generate.yaml",
             "Generating Samples"
         )
 
     # Step 5: Evaluate Results
     if not args.skip_evaluation:
         run_command(
-            f"{conda_cmd}python ../src/eval/evaluate_model.py --config ../configs/fashionmnist/vanilla/euclidean/evaluate.yaml",
+            f"{conda_cmd}python src/eval/evaluate_model.py --config configs/fashionmnist/vanilla/euclidean/evaluate.yaml",
             "Evaluating Generated Samples"
         )
 

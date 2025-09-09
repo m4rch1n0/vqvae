@@ -6,15 +6,15 @@ transformer_ckpt_path: "experiments/cifar10/vanilla/euclidean/transformer/checkp
 vae_ckpt_path: "experiments/cifar10/vanilla/euclidean/vae/checkpoints/best.pt"
 codebook_path: "experiments/cifar10/vanilla/euclidean/codebook/codebook.pt"
 
-# Model configurations
+# Model configurations 
 transformer:
   num_tokens: 513  # 512 codes + 1 BOS token
-  embed_dim: 512
-  n_layers: 8
-  n_head: 8
-  max_seq_len: 2  # [BOS, code]
+  embed_dim: 512    
+  n_layers: 8      
+  n_head: 8        
+  max_seq_len: 2   # [BOS, code]
   num_classes: 10
-  dropout: 0.1
+  dropout: 0.2    
 
 vae:
   latent_dim: 128
@@ -23,11 +23,11 @@ vae:
   dec_channels: [256, 128, 64]
   norm_type: "batch"
 
-# Uniform generation parameters (same across all approaches)
+# Balanced generation parameters
 num_samples: 100  # 10 samples per class
-temperature: 1.0
-top_k: 50
-class_labels: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]  # All CIFAR-10 classes
+temperature: 1.1  # 1 => 1.1
+top_k: 40        
+class_labels: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] # CIFAR-10 classes
 samples_per_class: 10
 
 # Output settings
