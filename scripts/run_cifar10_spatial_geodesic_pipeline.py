@@ -6,6 +6,7 @@ Complete pipeline from VAE training to evaluation
 
 import os
 import sys
+from pathlib import Path
 import subprocess
 import argparse
 
@@ -34,8 +35,12 @@ def main():
     
     args = parser.parse_args()
 
+    # Change to project root directory
+    project_root = Path(__file__).parent.parent
+    os.chdir(project_root)
+    print(f"Changed to project root: {project_root}")
 
-    base_dir = "../experiments/cifar10/spatial/geodesic"
+    base_dir = "experiments/cifar10/spatial/geodesic"
     
     # Create directory structure
     os.makedirs(f"{base_dir}/vae", exist_ok=True)
@@ -43,22 +48,22 @@ def main():
     os.makedirs(f"{base_dir}/transformer", exist_ok=True)
     os.makedirs(f"{base_dir}/evaluation", exist_ok=True)
 
-    # Use current environment (should already be rocm_env)
+    
     conda_cmd = ""
 
     # Step 1: Train Spatial VAE
     if not args.skip_vae:
         run_command(
-            f"{conda_cmd}python ../src/scripts/train_vae.py --config ../configs/cifar10/spatial/geodesic/vae.yaml",
+            f"{conda_cmd}python src/scripts/train_vae.py --config configs/cifar10/spatial/geodesic/vae.yaml",
             "Training Spatial VAE for CIFAR-10"
         )
 
     # Step 2: Build Geodesic Codebook
     if not args.skip_codebook:
-        cmd = f"{conda_cmd}python ../src/scripts/build_codebook.py " \
-              f"--latents_path ../experiments/cifar10/spatial/geodesic/vae/spatial_vae_cifar10/latents_train/z.pt " \
-              f"--vae_ckpt_path ../experiments/cifar10/spatial/geodesic/vae/spatial_vae_cifar10/checkpoints/best.pt " \
-              f"--out_dir ../experiments/cifar10/spatial/geodesic/codebook " \
+        cmd = f"{conda_cmd}python src/scripts/build_codebook.py " \
+              f"--latents_path experiments/cifar10/spatial/geodesic/vae/spatial_vae_cifar10/latents_train/z.pt " \
+              f"--vae_ckpt_path experiments/cifar10/spatial/geodesic/vae/spatial_vae_cifar10/checkpoints/best.pt " \
+              f"--out_dir experiments/cifar10/spatial/geodesic/codebook " \
               f"--in_channels 3 --output_image_size 32 --latent_dim 32 " \
               f"--enc_channels 64 128 256 --dec_channels 256 128 64 " \
               f"--recon_loss mse --norm_type batch " \
@@ -68,21 +73,21 @@ def main():
     # Step 3: Train Transformer
     if not args.skip_transformer:
         run_command(
-            f"{conda_cmd}python ../src/scripts/train_transformer.py --config ../configs/cifar10/spatial/geodesic/transformer.yaml",
+            f"{conda_cmd}python src/scripts/train_transformer.py --config configs/cifar10/spatial/geodesic/transformer.yaml",
             "Training Transformer on Spatial Geodesic Codes"
         )
 
     # Step 4: Generate Samples
     if not args.skip_generation:
         run_command(
-            f"{conda_cmd}python ../src/scripts/generate_samples.py --config ../configs/cifar10/spatial/geodesic/generate.yaml",
+            f"{conda_cmd}python src/scripts/generate_samples.py --config configs/cifar10/spatial/geodesic/generate.yaml",
             "Generating Samples"
         )
 
     # Step 5: Evaluate Results
     if not args.skip_evaluation:
         run_command(
-            f"{conda_cmd}python ../src/eval/evaluate_model.py --config ../configs/cifar10/spatial/geodesic/evaluate.yaml",
+            f"{conda_cmd}python src/eval/evaluate_model.py --config configs/cifar10/spatial/geodesic/evaluate.yaml",
             "Evaluating Generated Samples"
         )
 

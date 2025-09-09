@@ -15,7 +15,12 @@ def run_command(cmd, description):
     print(f"COMMAND: {cmd}")
     print(f"{'='*60}")
     
-    result = subprocess.run(cmd, shell=True, text=True)
+    # Set PYTHONPATH to include project root for subprocess
+    env = os.environ.copy()
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    env['PYTHONPATH'] = project_root + ':' + env.get('PYTHONPATH', '')
+    
+    result = subprocess.run(cmd, shell=True, text=True, env=env)
     
     if result.returncode != 0:
         print(f"ERROR: {description} failed! (Exit code: {result.returncode})")
@@ -33,6 +38,10 @@ def main():
     
     args = parser.parse_args()
 
+    # Change to project root directory and add it to Python path
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    os.chdir(project_root)
+    sys.path.insert(0, project_root)
 
     base_dir = "experiments/fashionmnist/spatial/geodesic"
     

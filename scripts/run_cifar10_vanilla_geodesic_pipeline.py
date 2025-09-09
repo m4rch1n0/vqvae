@@ -35,8 +35,12 @@ def main():
     
     args = parser.parse_args()
 
+    # Change to project root directory
+    project_root = Path(__file__).parent.parent
+    os.chdir(project_root)
+    print(f"Changed to project root: {project_root}")
 
-    base_dir = "../experiments/cifar10/vanilla/geodesic"
+    base_dir = "experiments/cifar10/vanilla/geodesic"
     
     # Create directory structure
     os.makedirs(f"{base_dir}/vae", exist_ok=True)
@@ -44,41 +48,20 @@ def main():
     os.makedirs(f"{base_dir}/transformer", exist_ok=True)
     os.makedirs(f"{base_dir}/evaluation", exist_ok=True)
 
-    # Use current environment (should already be rocm_env)
+    
     conda_cmd = ""
 
     # Step 1: Train VAE
     if not args.skip_vae:
         run_command(
-            f"{conda_cmd}python ../src/scripts/train_vanilla_vae.py --config ../configs/cifar10/vanilla/geodesic/vae.yaml",
-            "Training Vanilla VAE for CIFAR-10"
-        )
-
-    # Step 2: Build Geodesic Codebook
-    if not args.skip_codebook:
-        run_command(
-            f"{conda_cmd}python ../src/training/build_riemannian_codebook_legacy.py --config ../configs/cifar10/vanilla/geodesic/codebook.yaml",
-            "Building Geodesic Codebook"
-        )
-
-    # Step 3: Train Transformer
-    if not args.skip_transformer:
-        run_command(
-            f"{conda_cmd}python ../src/scripts/train_transformer.py --config ../configs/cifar10/vanilla/geodesic/transformer.yaml",
-            "Training Transformer on Geodesic Codes"
-        )
-
-    # Step 4: Generate Samples
-    if not args.skip_generation:
-        run_command(
-            f"{conda_cmd}python ../src/scripts/generate_samples.py --config ../configs/cifar10/vanilla/geodesic/generate.yaml",
+            f"{conda_cmd}python src/scripts/traieate_samples.py --config configs/cifar10/vanilla/geodesic/generate.yaml",
             "Generating Samples"
         )
 
     # Step 5: Evaluate Results
     if not args.skip_evaluation:
         run_command(
-            f"{conda_cmd}python ../src/eval/evaluate_model.py --config ../configs/cifar10/vanilla/geodesic/evaluate.yaml",
+            f"{conda_cmd}python src/eval/evaluate_model.py --config configs/cifar10/vanilla/geodesic/evaluate.yaml",
             "Evaluating Generated Samples"
         )
 

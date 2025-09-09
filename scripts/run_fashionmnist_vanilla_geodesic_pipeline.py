@@ -42,7 +42,10 @@ def main():
     parser.add_argument("--skip-evaluation", action="store_true", help="Skip final evaluation")
     
     args = parser.parse_args()
-
+    # Change to project root directory
+    project_root = Path(__file__).parent.parent
+    os.chdir(project_root)
+    print(f"Changed to project root: {project_root}")
 
     base_dir = "experiments/fashionmnist/vanilla/geodesic"
     
@@ -52,7 +55,7 @@ def main():
     os.makedirs(f"{base_dir}/transformer", exist_ok=True)
     os.makedirs(f"{base_dir}/evaluation", exist_ok=True)
 
-    # Use current environment (should already be rocm_env)
+    
     conda_cmd = ""
 
     # Step 1: Train VAE
