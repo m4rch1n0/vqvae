@@ -11,3 +11,4 @@ scikit-learn>=1.3
 tqdm
 psutil
 faiss-cpu
+lpips

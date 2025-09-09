@@ -14,7 +14,6 @@ import torch.nn.functional as F
 from torchvision import transforms, datasets
 from torchvision.utils import save_image
 from pathlib import Path
-import numpy as np
 
 # Simple metrics implementation
 @torch.no_grad()
