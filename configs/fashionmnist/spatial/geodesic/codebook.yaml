@@ -2,8 +2,8 @@
 # Organized structure: experiments/fashionmnist/spatial/geodesic/codebook/
 
 # Data and model paths (pointing to actual saved location)
-latents_path: "experiments/fashionmnist/spatial/geodesic/vae/spatial_vae_fashionmnist/spatial_vae_fashionmnist/latents_train/z.pt"
-vae_ckpt_path: "experiments/fashionmnist/spatial/geodesic/vae/spatial_vae_fashionmnist/spatial_vae_fashionmnist/checkpoints/best.pt"
+latents_path: "experiments/fashionmnist/spatial/geodesic/vae/spatial_vae_fashionmnist/latents_train/z.pt"
+vae_ckpt_path: "experiments/fashionmnist/spatial/geodesic/vae/spatial_vae_fashionmnist/checkpoints/best.pt"
 
 # Output directory
 out_dir: "experiments/fashionmnist/spatial/geodesic/codebook"

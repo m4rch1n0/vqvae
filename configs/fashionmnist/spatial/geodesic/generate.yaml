@@ -3,7 +3,7 @@
 
 # Model checkpoints and paths
 transformer_ckpt_path: "experiments/fashionmnist/spatial/geodesic/transformer/checkpoints/best.pt"
-vae_ckpt_path: "experiments/fashionmnist/spatial/geodesic/vae/spatial_vae_fashionmnist/spatial_vae_fashionmnist/checkpoints/best.pt"
+vae_ckpt_path: "experiments/fashionmnist/spatial/geodesic/vae/spatial_vae_fashionmnist/checkpoints/best.pt"
 codebook_path: "experiments/fashionmnist/spatial/geodesic/codebook/codebook.pt"
 
 # Model configurations

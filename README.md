@@ -135,8 +135,8 @@ python src/scripts/train_vae.py --config configs/fashionmnist/spatial/geodesic/v
 2) Build Geodesic Codebook (CLI mirrors `configs/.../codebook.yaml`)
 ```bash
 python src/scripts/build_codebook.py \
-  --latents_path experiments/fashionmnist/spatial/geodesic/vae/spatial_vae_fashionmnist/spatial_vae_fashionmnist/latents_train/z.pt \
-  --vae_ckpt_path experiments/fashionmnist/spatial/geodesic/vae/spatial_vae_fashionmnist/spatial_vae_fashionmnist/checkpoints/best.pt \
+  --latents_path experiments/fashionmnist/spatial/geodesic/vae/spatial_vae_fashionmnist/latents_train/z.pt \
+  --vae_ckpt_path experiments/fashionmnist/spatial/geodesic/vae/spatial_vae_fashionmnist/checkpoints/best.pt \
   --out_dir experiments/fashionmnist/spatial/geodesic/codebook \
   --in_channels 1 --output_image_size 28 --latent_dim 16 \
   --enc_channels 64 128 256 --dec_channels 256 128 64 \

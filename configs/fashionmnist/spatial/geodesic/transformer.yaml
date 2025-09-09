@@ -7,7 +7,7 @@ system:
 
 data:
   codes_path: experiments/fashionmnist/spatial/geodesic/codebook/codes.npy
-  labels_path: experiments/fashionmnist/spatial/geodesic/vae/spatial_vae_fashionmnist/spatial_vae_fashionmnist/latents_train/y.pt
+  labels_path: experiments/fashionmnist/spatial/geodesic/vae/spatial_vae_fashionmnist/latents_train/y.pt
   batch_size: 256
   num_workers: 0
   vanilla_vae: false  # Use standard CodesDataset for spatial sequences
