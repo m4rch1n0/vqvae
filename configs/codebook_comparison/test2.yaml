@@ -1,0 +1,31 @@
+# Experimental configuration for codebook comparison demo
+# Optimized for geodesic performance
+
+# Data paths (update these to point to your actual experiment outputs)
+data:
+  latents_path: "experiments/fashionmnist/vanilla/euclidean/vae/latents_val/z.pt"
+  checkpoint_path: "experiments/fashionmnist/vanilla/euclidean/vae/checkpoints/best.pt"
+
+# Quantization parameters
+quantization:
+  K: 256                  
+  seed: 42                 
+  
+# Graph construction 
+graph:
+  k: 8                    
+  metric: "cosine"         
+  sym: "mutual"            
+  mode: "distance"         
+
+# Experimental settings
+experiment:
+  device: "auto"           
+  save_plots: true         
+  save_metrics: true       
+  
+# Output configuration
+output:
+  base_dir: "demo_outputs/codebook_comparison_optimized"
+  timestamp: true          
+  save_codebook: false     

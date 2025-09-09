@@ -1,0 +1,10 @@
+{
+  "dataset": "FashionMNIST",
+  "psnr_abs_cont": 9.627649,
+  "psnr_abs_quant": 9.658965,
+  "psnr_cont_vs_quant": 16.613512,
+  "ssim_abs_cont": 0.353978,
+  "ssim_abs_quant": 0.316577,
+  "ssim_cont_vs_quant": 0.638967,
+  "samples_evaluated": 10000
+}

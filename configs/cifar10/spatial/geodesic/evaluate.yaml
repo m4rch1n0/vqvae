@@ -1,0 +1,26 @@
+# CIFAR-10 Spatial VAE Geodesic Evaluation Config
+# Organized structure: experiments/cifar10/spatial/geodesic/evaluation/
+
+data:
+  dataset_name: "cifar10"
+  test_size: 1000
+
+# Uniform evaluation parameters (same across all approaches)
+generated_path: "experiments/cifar10/spatial/geodesic/evaluation/generated_samples.png"
+num_samples: 100  # 10 samples per class
+samples_per_class: 10
+image_size: 32
+
+metrics:
+  calculate_psnr: true
+  calculate_ssim: true
+  calculate_lpips: true
+
+out_dir: "experiments/cifar10/spatial/geodesic/evaluation"
+metrics_file: "evaluation_metrics.json"
+comparison_file: "evaluation_results.txt"
+
+system:
+  device: "cuda"
+  seed: 42
+

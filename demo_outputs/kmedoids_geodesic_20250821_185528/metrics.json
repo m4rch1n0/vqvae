@@ -1,0 +1,74 @@
+[
+  {
+    "graph": "euclidean",
+    "K": 32,
+    "init": "kpp",
+    "seed": 42,
+    "qe_geo_finite": 1173842.25,
+    "finite_fraction": 0.9685,
+    "purity": 0.6695,
+    "nmi": 0.5346720091106837,
+    "ari": 0.4061125394359732,
+    "perplexity": 11.288910191925781
+  },
+  {
+    "graph": "euclidean",
+    "K": 32,
+    "init": "random",
+    "seed": 42,
+    "qe_geo_finite": 932640.0,
+    "finite_fraction": 0.9663,
+    "purity": 0.7388,
+    "nmi": 0.5247994707518382,
+    "ari": 0.35169804892784096,
+    "perplexity": 25.23291568420582
+  },
+  {
+    "graph": "euclidean",
+    "K": 64,
+    "init": "kpp",
+    "seed": 42,
+    "qe_geo_finite": 934641.875,
+    "finite_fraction": 0.97,
+    "purity": 0.773,
+    "nmi": 0.5427957107714063,
+    "ari": 0.3658724676570971,
+    "perplexity": 24.92962800893292
+  },
+  {
+    "graph": "euclidean",
+    "K": 64,
+    "init": "random",
+    "seed": 42,
+    "qe_geo_finite": 670418.75,
+    "finite_fraction": 0.9663,
+    "purity": 0.7966,
+    "nmi": 0.5229289341389924,
+    "ari": 0.21555653579472223,
+    "perplexity": 49.657141447578425
+  },
+  {
+    "graph": "euclidean",
+    "K": 128,
+    "init": "kpp",
+    "seed": 42,
+    "qe_geo_finite": 701874.5625,
+    "finite_fraction": 0.9739,
+    "purity": 0.8147,
+    "nmi": 0.5357299352664032,
+    "ari": 0.2546634509051675,
+    "perplexity": 50.95814973997386
+  },
+  {
+    "graph": "euclidean",
+    "K": 128,
+    "init": "random",
+    "seed": 42,
+    "qe_geo_finite": 517637.9375,
+    "finite_fraction": 0.9664,
+    "purity": 0.8115,
+    "nmi": 0.4963832636752105,
+    "ari": 0.12654310033417812,
+    "perplexity": 96.21870352511394
+  }
+]

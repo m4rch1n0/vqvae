@@ -1,0 +1,10 @@
+{
+  "dataset": "CIFAR10",
+  "psnr_abs_cont": 12.049078,
+  "psnr_abs_quant": 10.317001,
+  "psnr_cont_vs_quant": 13.898226,
+  "ssim_abs_cont": 0.470024,
+  "ssim_abs_quant": 0.133135,
+  "ssim_cont_vs_quant": 0.276719,
+  "samples_evaluated": 10000
+}

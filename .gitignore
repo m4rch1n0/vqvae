@@ -8,6 +8,7 @@ __pycache__/
 venv/
 env/
 .ipynb_checkpoints/
+.envrc
 
 # Editors/OS
 .vscode/
@@ -15,13 +16,21 @@ env/
 .DS_Store
 
 # Data and experiment artifacts
-/data/
+data/
+
 /experiments/
-/outputs/
+demo_outputs/
+mlruns/
+outputs/
 **/.hydra/
 *.pt
 *.ckpt
 *.log
+*.png
+
+# Local datasets and archives
+/scripts/data/
+*.tar.gz
 
 # LaTeX build artifacts
 *.aux

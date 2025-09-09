@@ -1,0 +1,36 @@
+# CIFAR-10 Vanilla VAE Euclidean Transformer Training Config
+# Organized structure: experiments/cifar10/vanilla/euclidean/transformer/
+
+system:
+  seed: 42
+  device: auto
+
+data:
+  codes_path: experiments/cifar10/vanilla/euclidean/codebook/codes.npy
+  labels_path: experiments/cifar10/vanilla/euclidean/vae/latents_train/y.pt
+  batch_size: 256    
+  num_workers: 0
+  vanilla_vae: true  
+
+training:
+  epochs: 100        
+  lr: 2e-4           # 3e-4 => 2e-4
+  weight_decay: 0.05  # 0.01 => 0.05
+  label_smoothing: 0.1
+  
+  # "anti-overfitting"
+  early_stopping_patience: 15
+
+out:
+  dir: experiments/cifar10/vanilla/euclidean/transformer
+
+run_name: transformer_vanilla_euclidean
+
+model:
+  num_classes: 10
+  num_tokens: 513  # 512 codes + 1 BOS token
+  embed_dim: 512   # 
+  n_layers: 8      # 
+  n_head: 8        # 
+  max_seq_len: 2   # [BOS, code]
+  dropout: 0.2     # 0.1 => 0.2

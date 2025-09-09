@@ -1,6 +1,15 @@
-# Architettura VAE (immagini 1x28x28)
-latent_dim: 16
-enc_channels: [32, 64, 128]
-dec_channels: [128, 64, 32]
-# Recon loss: bce|mse
-recon_loss: bce
+# VAE architecture for Fashion-MNIST
+in_channels: 1 # 1 for Fashion-MNIST (grayscale)
+output_image_size: 28 # 28x28 for Fashion-MNIST
+latent_dim: 32
+enc_channels: [64, 128, 256]
+dec_channels: [256, 128, 64]
+recon_loss: mse
+beta: 1.0
+norm_type: batch # one of [none, batch, group]
+# Fashion-MNIST typically uses values in [0,1] without normalization
+mse_use_sigmoid: true
+free_bits: 0.25
+capacity_max: 15.0
+capacity_anneal_steps: 50000
+capacity_mode: abs

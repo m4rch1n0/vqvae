@@ -1,0 +1,35 @@
+# FashionMNIST Spatial VAE Geodesic Codebook Config
+# Organized structure: experiments/fashionmnist/spatial/geodesic/codebook/
+
+# Data and model paths (pointing to actual saved location)
+latents_path: "experiments/fashionmnist/spatial/geodesic/vae/spatial_vae_fashionmnist/spatial_vae_fashionmnist/latents_train/z.pt"
+vae_ckpt_path: "experiments/fashionmnist/spatial/geodesic/vae/spatial_vae_fashionmnist/spatial_vae_fashionmnist/checkpoints/best.pt"
+
+# Output directory
+out_dir: "experiments/fashionmnist/spatial/geodesic/codebook"
+
+# VAE model configuration (for loading the decoder)
+vae:
+  in_channels: 1          # Grayscale
+  output_image_size: 28   # 28x28
+  latent_dim: 16          # Spatial latent dim
+  enc_channels: [64, 128, 256]
+  dec_channels: [256, 128, 64]
+  recon_loss: "mse"
+  norm_type: "batch"
+  mse_use_sigmoid: true
+
+# Graph construction parameters
+graph:
+  k: 20  # k-NN connectivity
+  sym: "union"  # Graph symmetrization
+
+# Quantization parameters
+quantize:
+  K: 512  # Codebook size
+  init: "kpp"  # K-means++ initialization
+  seed: 42
+
+# Riemannian computation
+system:
+  batch_size: 512  # Batch size for Riemannian distance computation

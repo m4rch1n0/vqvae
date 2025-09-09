@@ -1,0 +1,43 @@
+# FashionMNIST Spatial VAE Geodesic Sample Generation Config
+# Organized structure: experiments/fashionmnist/spatial/geodesic/evaluation/
+
+# Model checkpoints and paths
+transformer_ckpt_path: "experiments/fashionmnist/spatial/geodesic/transformer/checkpoints/best.pt"
+vae_ckpt_path: "experiments/fashionmnist/spatial/geodesic/vae/spatial_vae_fashionmnist/spatial_vae_fashionmnist/checkpoints/best.pt"
+codebook_path: "experiments/fashionmnist/spatial/geodesic/codebook/codebook.pt"
+
+# Model configurations
+transformer:
+  num_tokens: 512  # No BOS token for spatial sequences
+  embed_dim: 256
+  n_layers: 4
+  n_head: 4
+  max_seq_len: 16  # 4x4 spatial grid
+  num_classes: 10
+  dropout: 0.1
+
+vae:
+  in_channels: 1          # Grayscale
+  output_image_size: 28   # 28x28
+  latent_dim: 16          # Spatial latent dim
+  enc_channels: [64, 128, 256]
+  dec_channels: [256, 128, 64]
+  recon_loss: "mse"
+  norm_type: "batch"
+  mse_use_sigmoid: true
+
+# Uniform generation parameters (same across all approaches)
+num_samples: 100  # 10 samples per class
+temperature: 1.0
+top_k: 50
+class_labels: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]  # All FashionMNIST classes
+samples_per_class: 10
+
+# Output settings
+output_dir: "experiments/fashionmnist/spatial/geodesic/evaluation"
+output_filename: "generated_samples.png"
+
+# System settings
+device: "cuda"
+seed: 42
+vanilla_vae: false  # This is a spatial VAE

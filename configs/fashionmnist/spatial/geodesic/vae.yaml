@@ -1,0 +1,45 @@
+# FashionMNIST Spatial VAE Training Config (Geodesic Pipeline)
+# Organized structure: experiments/fashionmnist/spatial/geodesic/vae/
+
+seed: 42
+device: auto
+max_epochs: 200
+lr: 1e-3           # Higher LR for spatial VAE
+weight_decay: 1e-5  # Lower weight decay
+log_interval: 100
+val_interval: 1
+early_stop: 20
+optimizer: adamw
+scheduler:
+  name: cosine
+  t_max: 200
+grad_clip_max_norm: 1.0
+
+# Output directory following new structure
+out_dir: experiments/fashionmnist/spatial/geodesic/vae
+save_latents: true
+mlflow_tracking_uri: experiments/mlruns
+experiment_name: FashionMNIST_Spatial_VAE_Geodesic
+run_name: spatial_vae_fashionmnist
+
+# Data configuration for FashionMNIST
+data:
+  root: ./data
+  name: FashionMNIST
+  batch_size: 256
+  num_workers: 4
+  pin_memory: true
+  persistent_workers: true
+  augment: false  # Better for grayscale datasets
+
+# Spatial VAE Model configuration for FashionMNIST
+model:
+  in_channels: 1          # Grayscale
+  output_image_size: 28   # 28x28 resolution
+  latent_dim: 16          # Lower per-cell latent dim for spatial (16×4×4 = 256 total)
+  enc_channels: [64, 128, 256]
+  dec_channels: [256, 128, 64]
+  recon_loss: mse
+  beta: 1.0
+  norm_type: batch
+  mse_use_sigmoid: true   # Typical for FashionMNIST

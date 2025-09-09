@@ -1,0 +1,21 @@
+# FashionMNIST Vanilla VAE Euclidean Codebook Config
+# Organized structure: experiments/fashionmnist/vanilla/euclidean/codebook/
+
+data:
+  dataset: "fashionmnist"
+  latents_path: "experiments/fashionmnist/vanilla/euclidean/vae/latents_train/mu.pt"
+
+graph:
+  k: 20
+  metric: "euclidean"
+  sym: "union"
+  mode: "connectivity"
+
+quantize:
+  K: 512  # Start with same size as CIFAR-10
+  init: "kpp"
+  seed: 42
+
+out:
+  dir: "experiments/fashionmnist/vanilla/euclidean/codebook"
+

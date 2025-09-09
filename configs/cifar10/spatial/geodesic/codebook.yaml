@@ -1,0 +1,36 @@
+# CIFAR-10 Spatial VAE Geodesic Codebook Config
+# Organized structure: experiments/cifar10/spatial/geodesic/codebook/
+
+# Data and model paths
+latents_path: "experiments/cifar10/spatial/geodesic/vae/latents_train/z.pt"
+vae_ckpt_path: "experiments/cifar10/spatial/geodesic/vae/checkpoints/best.pt"
+
+# Output directory
+out_dir: "experiments/cifar10/spatial/geodesic/codebook"
+
+# VAE model configuration (for loading the decoder)
+vae:
+  in_channels: 3
+  output_image_size: 32
+  latent_dim: 32
+  enc_channels: [64, 128, 256]
+  dec_channels: [256, 128, 64]
+  recon_loss: "mse"
+  norm_type: "batch"
+  mse_use_sigmoid: false
+
+# Graph construction parameters
+graph:
+  k: 20  # k-NN connectivity
+  sym: "union"  # Graph symmetrization
+
+# Quantization parameters
+quantize:
+  K: 512  # Codebook size
+  init: "kpp"  # K-means++ initialization
+  seed: 42
+
+# Riemannian computation
+system:
+  batch_size: 512  # Batch size for Riemannian distance computation
+

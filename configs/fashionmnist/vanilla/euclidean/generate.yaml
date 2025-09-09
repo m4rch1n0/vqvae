@@ -1,0 +1,44 @@
+# FashionMNIST Vanilla VAE Euclidean Sample Generation Config
+# Organized structure: experiments/fashionmnist/vanilla/euclidean/evaluation/
+
+# Model checkpoints and paths
+transformer_ckpt_path: "experiments/fashionmnist/vanilla/euclidean/transformer/checkpoints/best.pt"
+vae_ckpt_path: "experiments/fashionmnist/vanilla/euclidean/vae/checkpoints/best.pt"
+codebook_path: "experiments/fashionmnist/vanilla/euclidean/codebook/codebook.pt"
+
+# Model configurations for FashionMNIST
+transformer:
+  num_tokens: 513  # 512 codes + 1 BOS token
+  embed_dim: 512
+  n_layers: 8
+  n_head: 8
+  max_seq_len: 2   # [BOS, code]
+  num_classes: 10
+  dropout: 0.1
+
+vae:
+  in_channels: 1          # Grayscale
+  output_image_size: 28   # 28x28
+  latent_dim: 128
+  enc_channels: [64, 128, 256]
+  dec_channels: [256, 128, 64]
+  recon_loss: "mse"
+  norm_type: "batch"
+  mse_use_sigmoid: true
+
+# Uniform generation parameters (same across all approaches)
+num_samples: 100  # 10 samples per class
+temperature: 1.0
+top_k: 50
+class_labels: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]  # All FashionMNIST classes
+samples_per_class: 10
+
+# Output settings
+output_dir: "experiments/fashionmnist/vanilla/euclidean/evaluation"
+output_filename: "generated_samples.png"
+
+# System settings
+device: "cuda"
+seed: 42
+vanilla_vae: true  # This is a vanilla VAE
+

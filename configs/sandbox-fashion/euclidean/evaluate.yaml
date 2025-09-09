@@ -1,0 +1,26 @@
+# FashionMNIST Vanilla VAE Euclidean Evaluation Config
+# Organized structure: experiments/fashionmnist/vanilla/euclidean/evaluation/
+
+data:
+  dataset_name: "fashionmnist"
+  test_size: 1000
+
+# Uniform evaluation parameters (same across all approaches)
+generated_path: "experiments/sandbox-fashion/euclidean/evaluation/generated_samples.png"  # Sandbox path
+num_samples: 20   # 2 samples per class for speed
+samples_per_class: 2  # Fast evaluation
+image_size: 28    # FashionMNIST resolution
+
+metrics:
+  calculate_psnr: true
+  calculate_ssim: true
+  calculate_lpips: true
+
+out_dir: "experiments/sandbox-fashion/euclidean/evaluation"  # Sandbox output
+metrics_file: "evaluation_metrics.json"
+comparison_file: "evaluation_results.txt"
+
+system:
+  device: "cuda"
+  seed: 42
+

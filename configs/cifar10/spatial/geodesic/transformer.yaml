@@ -1,0 +1,33 @@
+# CIFAR-10 Spatial VAE Geodesic Transformer Training Config
+# Organized structure: experiments/cifar10/spatial/geodesic/transformer/
+
+system:
+  seed: 42
+  device: auto
+
+data:
+  codes_path: experiments/cifar10/spatial/geodesic/codebook/codes.npy
+  labels_path: experiments/cifar10/spatial/geodesic/vae/spatial_vae_cifar10/latents_train/y.pt
+  batch_size: 256
+  num_workers: 0
+  vanilla_vae: false  # Use standard CodesDataset for spatial sequences
+
+training:
+  epochs: 200
+  lr: 3e-4
+  weight_decay: 0.01
+  label_smoothing: 0.1
+
+out:
+  dir: experiments/cifar10/spatial/geodesic/transformer
+
+run_name: transformer_spatial_geodesic
+
+model:
+  num_classes: 10
+  num_tokens: 512  # No BOS token needed for spatial sequences
+  embed_dim: 256
+  n_layers: 4
+  n_head: 4
+  max_seq_len: 16  # 4x4 spatial grid
+  dropout: 0.1

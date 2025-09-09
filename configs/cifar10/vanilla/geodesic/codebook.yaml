@@ -1,0 +1,44 @@
+# CIFAR-10 Vanilla VAE Geodesic Codebook Config
+# Organized structure: experiments/cifar10/vanilla/geodesic/codebook/
+
+data:
+  dataset: "cifar10"
+  latents_path: "experiments/cifar10/vanilla/geodesic/vae/latents_train/mu.pt"
+
+# VAE model configuration (needed for loading decoder for Riemannian computation)
+model:
+  in_channels: 3
+  output_image_size: 32
+  latent_dim: 128
+  enc_channels: [64, 128, 256]
+  dec_channels: [256, 128, 64]
+  recon_loss: "mse"
+  norm_type: "batch"
+  mse_use_sigmoid: false
+  free_bits_default: 0.25
+  capacity_max_default: 25.0
+  capacity_anneal_steps_default: 100000
+  capacity_mode_default: abs
+
+# Checkpoint path
+checkpoint_path: "experiments/cifar10/vanilla/geodesic/vae/checkpoints/best.pt"
+
+graph:
+  k: 20
+  metric: "euclidean"
+  sym: "union"
+  mode: "connectivity"
+
+riemannian:
+  mode: "subset"
+  max_edges: 5000
+  batch_size: 512
+
+quantize:
+  K: 512
+  init: "kpp"
+  seed: 42
+
+out:
+  dir: "experiments/cifar10/vanilla/geodesic/codebook"
+

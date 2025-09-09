@@ -1,0 +1,44 @@
+# FashionMNIST Vanilla VAE Geodesic Codebook Config
+# Organized structure: experiments/fashionmnist/vanilla/geodesic/codebook/
+
+# Data paths for geodesic codebook construction  
+data:
+  dataset: "fashionmnist"
+  latents_path: "experiments/fashionmnist/vanilla/geodesic/vae/latents_train/mu.pt"
+
+vae:
+  ckpt_path: "experiments/fashionmnist/vanilla/geodesic/vae/checkpoints/best.pt"
+
+# VAE model configuration (needed for loading decoder for Riemannian computation)
+model:
+  in_channels: 1
+  output_image_size: 28
+  latent_dim: 128
+  enc_channels: [64, 128, 256]
+  dec_channels: [256, 128, 64]
+  recon_loss: "mse"
+  norm_type: "batch"
+  mse_use_sigmoid: true
+
+# Graph construction parameters for geodesic distances
+graph:
+  k: 20              # k-NN connectivity
+  sym: "union"       # Graph symmetrization
+  metric: "euclidean" # Base metric for k-NN (before geodesic)
+  mode: "connectivity"  # Graph construction mode
+
+# Riemannian computation parameters  
+riemannian:
+  mode: "subset"        # Riemannian edge reweighting mode
+  max_edges: 5000       # Maximum edges to reweight
+  batch_size: 512       # Batch size for Riemannian computation
+
+# Quantization parameters
+quantize:
+  K: 512            # Codebook size
+  init: "kpp"       # K-means++ initialization
+  seed: 42
+
+# Output directory
+out:
+  dir: "experiments/fashionmnist/vanilla/geodesic/codebook"
