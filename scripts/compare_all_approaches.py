@@ -333,8 +333,13 @@ def generate_summary_report(df: pd.DataFrame, out_dir: Path):
 
 
 def main():
+    import os
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(script_dir)
+    default_out_dir = os.path.join(project_root, "experiments", "cifar10", "comparison")
+    
     parser = argparse.ArgumentParser(description="Compare all VQ-VAE approaches")
-    parser.add_argument("--out_dir", default="../experiments/cifar10/comparison", 
+    parser.add_argument("--out_dir", default=default_out_dir, 
                        help="Output directory for comparison results")
     parser.add_argument("--approaches", nargs='+', 
                        default=["baseline", "vanilla_euclidean", "vanilla_geodesic", "spatial_geodesic"],
@@ -349,12 +354,12 @@ def main():
     print(f"=== VQ-VAE APPROACHES COMPARISON ===")
     print(f"Output directory: {out_dir}")
     
-    # Define experiment paths (running from scripts/ directory)
+    # Define experiment paths using absolute paths
     experiment_paths = {
-        "baseline": "../experiments/cifar10/baseline_vqvae",
-        "vanilla_euclidean": "../experiments/cifar10/vanilla/euclidean", 
-        "vanilla_geodesic": "../experiments/cifar10/vanilla/geodesic",
-        "spatial_geodesic": "../experiments/cifar10/spatial/geodesic",
+        "baseline": os.path.join(project_root, "experiments", "cifar10", "baseline_vqvae"),
+        "vanilla_euclidean": os.path.join(project_root, "experiments", "cifar10", "vanilla", "euclidean"), 
+        "vanilla_geodesic": os.path.join(project_root, "experiments", "cifar10", "vanilla", "geodesic"),
+        "spatial_geodesic": os.path.join(project_root, "experiments", "cifar10", "spatial", "geodesic"),
     }
     
     # Load results from all approaches

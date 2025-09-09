@@ -49,9 +49,15 @@ def codebook_stats(codes: torch.Tensor, K: int) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(description="Simple Baseline VQ-VAE Evaluation")
-    parser.add_argument("--baseline_dir", default="baseline VQVAE/vqvae_cifar10_clean")
+    
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(script_dir)
+    default_baseline_dir = os.path.join(project_root, "baseline VQVAE", "vqvae_cifar10_clean")
+    default_out_dir = os.path.join(project_root, "experiments", "cifar10", "baseline_vqvae", "evaluation")
+    
+    parser.add_argument("--baseline_dir", default=default_baseline_dir)
     parser.add_argument("--checkpoint", default="outputs/checkpoints/ckpt_best.pt")
-    parser.add_argument("--out_dir", default="../experiments/cifar10/baseline_vqvae/evaluation")
+    parser.add_argument("--out_dir", default=default_out_dir)
     parser.add_argument("--max_samples", type=int, default=1000)
     parser.add_argument("--gen_samples", type=int, default=100)
     
