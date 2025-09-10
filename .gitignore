@@ -26,7 +26,7 @@ outputs/
 *.pt
 *.ckpt
 *.log
-*.png
+
 
 # Local datasets and archives
 /scripts/data/

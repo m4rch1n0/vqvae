@@ -43,6 +43,9 @@
 
 \begin{document}
 
+\setlength{\parskip}{0pt plus 0.2pt minus 0.2pt}
+
+
 \twocolumn[
 \dlaititle{Geodesic Post-Hoc Quantization for Variational Autoencoders}
 
@@ -54,42 +57,33 @@
 
 \dlaicorrespondingauthor{Marco}{galletti.2109043@studenti.uniroma1.it}
 
-\vskip 0.2in
+\vskip 0.3in
 ]
 
 \printAffiliationsAndNotice{}
 
 \begin{abstract}
-This project revisits the classic VQ-VAE by implementing a post-hoc quantization pipeline. 
-Instead of training end-to-end, a continuous-latent VAE is first trained and then a discrete codebook is built by clustering its latent space. This work compares standard graph-based geodesic clustering with two novel variations based on a decoder-induced Riemannian metric. 
-Under this metric, latent-space quantization error is reduced by three orders of magnitude, but this does not translate to improved image-space reconstruction quality, where simpler Euclidean-based graph geodesics perform best. 
-Furthermore, the success of post-hoc quantization appears to be highly dataset-dependent: 
-high-quality results are achieved on structured data like FashionMNIST, but performance degrades on more complex datasets such as CIFAR-10, revealing what appears to be a fundamental trade-off between post-hoc and end-to-end quantization schemes.
+This project revisits the classic VQ-VAE by implementing a post-hoc quantization pipeline.
+This work compares an end-to-end trained VQ-VAE against a post-hoc method that uses a novel geodesic clustering algorithm based on a metric derived from the VAE decoder's geometry on the CIFAR-10 dataset. 
+The results reveal that the inherent "training mismatch" of the proposed framework proves to be a significant bottleneck, with the VQ-VAE achieving superior results across all metrics. 
 \end{abstract}
 
 \section{Introduction}
 Generative models, particularly Variational Autoencoders (VAEs), are powerful tools for learning low-dimensional representations of complex data. 
-The Vector Quantized VAE (VQ-VAE) extends this by learning a discrete latent space, which is often more suitable for downstream tasks such as autoregressive modeling. 
+The Vector Quantized VAE (VQ-VAE) extends this by learning a discrete latent space, which is often more suitable for downstream tasks such as autoregressive modeling.
 Standard VQ-VAEs learn this discrete representation end-to-end with the encoder and decoder.
-This work explores an alternative post-hoc quantization pipeline, where a continuous-latent VAE is first trained, 
-and a discrete codebook is then built by applying clustering algorithms to its latent space.
-
-The main contributions are as follows:
-\begin{itemize}
-    \item An end-to-end pipeline for post-hoc vector quantization of VAEs.
-    \item The implementation and evaluation of a geodesic clustering method based on a decoder-induced Riemannian metric, compared against a standard Euclidean baseline.
-    \item A detailed analysis showing that while geodesic clustering better respects the latent manifold's structure, simpler Euclidean clustering consistently yields superior image reconstructions.
-    \item The finding that the viability of post-hoc quantization appears to be strongly dependent on dataset complexity, offering insights into the trade-offs between post-hoc and end-to-end learned quantization.
-\end{itemize}
+This work explores an alternative quantization pipeline, where a continuous-latent VAE is first trained,
+and a discrete codebook is then built by applying clustering algorithms to its latent space. 
+The primary contribution is the implementation and evaluation of a geometrically-motivated a posteriori quantization method on the CIFAR-10 dataset, comparing it directly against a standard VQ-VAE to investigate the trade-offs between these two paradigms.
 
 The code for this project is available at \url{https://github.com/m4rch1n0/vqvae}.
 
 \section{Related Work}
 The project builds upon three main areas of research: discrete latent variable models, the geometric analysis of latent spaces, and graph-based clustering methods.
 
-\paragraph{Discrete Latent Representations.} The Vector-Quantized Variational Autoencoder (VQ-VAE) \cite{van2017neural} is the foundational model for learning discrete representations for generative tasks. 
-VQ-VAE introduced the paradigm of learning a discrete codebook end-to-end with the encoder and decoder, and using a powerful autoregressive model over the resulting spatial grid of codes to generate high-fidelity images. 
-The research in this project deliberately deviates from this by exploring a post-hoc quantization scheme, which separates the continuous representation learning from the codebook creation.
+\paragraph{Discrete Latent Representations.} The VQ-VAE \cite{van2017neural} is the foundational model for learning discrete representations for generative tasks. 
+It introduces the paradigm of learning a discrete codebook with the encoder and decoder, and uses a powerful autoregressive model over the resulting spatial grid of codes to generate high-fidelity images. 
+The research in this project deliberately deviates from this by exploring a post-training quantization scheme, which separates the continuous representation learning from the codebook creation.
 
 \paragraph{Geometry of VAE Latent Spaces.} The core motivation for the geodesic method comes from works that model the latent space of a VAE as a Riemannian manifold. Arvanitidis et al. \cite{arvanitidis2017latent} established the use of the pull-back metric tensor, defined by the decoder's Jacobian ($M(z) = J(z)^T J(z)$), to better represent the geometry of the data manifold. They argued for using geodesic distances, rather than Euclidean ones, for tasks like interpolation and clustering. Shao et al. \cite{shao2018riemannian} further developed practical methods for geodesic computation, though they noted that for some image VAEs, the learned manifolds can be nearly flat, making Euclidean distance a reasonable approximation. 
 This work leverages these geometric insights directly, using Jacobian-vector product to approximate local geodesic distances for clustering.
@@ -99,87 +93,32 @@ This work leverages these geometric insights directly, using Jacobian-vector pro
 \section{Method}
 The pipeline consists of three main stages: continuous representation learning, post-hoc quantization, and autoregressive modeling.
 
-\subsection{Model Architectures\protect\footnote{Model implementations are available at \texttt{vqvae/src/models/$\footnotesize\{\texttt{spatial\_vae.py}, \texttt{transformer.py}\}$.}}}
+\subsection{Model Architectures\protect\footnote{Model implementations are available at \texttt{vqvae/src/models/}. The vanilla VAE used in the Appendix is also available here.}}
 \paragraph{Spatial VAE.} The VAE encoder consists of three convolutional layers (with 64, 128, and 256 channels respectively, stride 2, and Batch Normalization) that downsample the input image to a $4 \times 4$ spatial grid. 
-Two final $1 \times 1$ convolutions produce the mean and log-variance for a latent space at each spatial location (16-dim for FashionMNIST, 32-dim for CIFAR-10). The decoder mirrors this architecture using transposed convolutions to reconstruct the image.
+Two final $1 \times 1$ convolutions produce the mean and log-variance for a 32-dim latent space at each spatial location. The decoder mirrors this architecture using transposed convolutions to reconstruct the image.
 
-\paragraph{Transformer.} A decoder-only Transformer is used for autoregressive modeling of the quantized latent codes. For both datasets, the model has 4 layers, 4 attention heads, an embedding dimension of 256, and is trained on flattened $16$-token sequences.
+\paragraph{Transformer.} A decoder-only Transformer is used for autoregressive modeling of the quantized latent codes. The model has 4 layers, 4 attention heads, an embedding dimension of 256, and is trained on flattened $16$-token sequences.
 
 \subsection{Training Details}
-The \texttt{SpatialVAE} for both datasets was trained for 200 epochs using the AdamW optimizer with a learning rate of $10^{-3}$, a weight decay of $10^{-5}$, and a cosine learning rate schedule. 
-The Transformer models were also trained for 200 epochs with AdamW, but with a learning rate of $3 \times 10^{-4}$ and a weight decay of $0.01$. The batch size for all experiments was 256.
+The \texttt{SpatialVAE} was trained for 200 epochs using the AdamW optimizer with a learning rate of $10^{-3}$, a weight decay of $10^{-5}$, and a cosine learning rate schedule. The Transformer model was also trained for 200 epochs with AdamW, but with a learning rate of $3 \times 10^{-4}$ and a weight decay of $0.01$. The batch size was 256.
 
-\subsection{Post-Hoc Quantization Methods}
-After training a VAE, the mean latent vectors ($\mu$) are extracted from the training set and a discrete codebook is built by clustering this latent space. 
-The analysis on FashionMNIST compares three distinct graph-based quantization schemes which progressively incorporate the learned manifold geometry.
-
-\paragraph{Method 1: Graph Geodesic Clustering.}
-This baseline clustering method first constructs a k-NN graph from the latent vectors, with edge weights defined by the standard Euclidean distance. 
-K-medoids clustering is then performed, where the distance between any two points on the graph is calculated as the shortest path between them (a "graph geodesic"). 
-This method was applied to the latent space of the \texttt{vanilla VAE}.
-
-\paragraph{Method 2: Partial Riemannian Geodesic Clustering.}
-This method aims to improve upon the first by incorporating the VAE's learned geometry. 
-It begins with the same Euclidean-weighted k-NN graph, but then re-weights a small, stratified subset of the edges (5,000 by default) using the decoder-induced Riemannian metric described in the introduction. 
-Clustering is then performed on this hybrid graph, which is mostly Euclidean but is locally corrected by the Riemannian metric. This was also applied to the latent space of the \texttt{vanilla VAE}.
-\paragraph{Method 3: Full Riemannian Geodesic Clustering.}
-This is the most geometrically rigorous approach. It re-weights \textit{all} unique edges in the k-NN graph with the Riemannian metric. The subsequent k-medoids clustering is therefore performed on a graph that fully represents the learned manifold structure. This method was applied to the latent space of a \texttt{SpatialVAE}, which represents a change in the underlying VAE architecture as well as the quantization scheme.
+\subsection{Post-Hoc Quantization Method}
+After training the VAE, the mean latent vectors ($\mu$) are extracted from the training set and a discrete codebook is built using a geometrically rigorous clustering scheme. This is the \textbf{Full Riemannian Geodesic Clustering} method. The process is as follows:
+\begin{enumerate}
+    \item \textbf{k-NN Graph Construction:} A k-Nearest Neighbors graph (with k=50) is constructed from the flattened latent vectors to establish local connectivity.
+    \item \textbf{Riemannian Re-weighting:} \textit{All} unique edges in this graph are re-weighted using a metric derived from the VAE decoder's geometry, approximated via efficient Jacobian-vector products.
+    \item \textbf{Geodesic K-Medoids:} K-Medoids clustering (with K=512) is performed on the re-weighted graph. Distances are computed as the shortest paths on the graph using \textbf{Dijkstra's algorithm}, and the process is initialized with a K-Means++ strategy. Clustering is performed on the largest connected component (LCC) of the graph to ensure all points are mutually reachable.
+\end{enumerate}
 
 \subsection{Autoregressive Modeling}
 Once the codebook is built, the spatial latent grids for each training image are quantized, converting them into sequences of discrete integer codes. A decoder-only Transformer model is then trained to predict the next code in a sequence, \textbf{conditioned on the previous ones}. This allows for autoregressive generation of novel sequences of codes, which can then be mapped back to latent vectors via the codebook and rendered into images by the VAE decoder.
 
 \section{Experiments and Results}
-The pipeline was evaluated on two datasets of varying complexity: FashionMNIST and CIFAR-10.
-Performance was assessed using Peak Signal-to-Noise Ratio (PSNR) and Structural Similarity Index (SSIM).
-\subsection{Comparative Analysis on FashionMNIST}
-The primary analysis compares the three quantization methods on the FashionMNIST dataset. 
-As shown in Table~\ref{tab:fashion_mnist_results}, the results suggest a nuanced trade-off between geometric accuracy and reconstruction quality. The graph geodesic method with pure Euclidean weights achieves the highest performance. The introduction of a partial Riemannian correction provides a competitive result, while the full Riemannian method, though most geometrically faithful, yields a lower reconstruction quality.
+The evaluation was performed on the CIFAR-10 dataset. Performance was assessed using Peak Signal-to-Noise Ratio (PSNR), Structural Similarity Index (SSIM), and Learned Perceptual Image Patch Similarity (LPIPS).
 
-\begin{table}[h!]
-\caption{FashionMNIST Quantization Method Comparison.\protect\footnotemark}
-\label{tab:fashion_mnist_results}
-\begin{center}
-\begin{footnotesize}
-\begin{tabular}{l c c}
-\toprule
-Method & PSNR (dB) & SSIM \\
-\midrule
-Graph Geodesic (Euclidean) & \textbf{33.42} & \textbf{0.9589} \\
-Partial Riemannian Geodesic & 31.95 & 0.9432 \\
-Full Riemannian Geodesic & 9.84 & 0.5168 \\
-\bottomrule
-\end{tabular}
-\end{footnotesize}
-\end{center}
-\vspace{-0.4cm}
-\end{table}
-\footnotetext{Metrics are computed consistently across all methods. While absolute values may be implementation-dependent, the relative performance ranking is valid.}
 
-\begin{figure*}[!p]
-    \centering
-    \begin{subfigure}[b]{0.32\textwidth}
-        \includegraphics[width=\linewidth]{images/fashion_vanilla_euclidean_comparison_grid.png}
-        \caption{Method 1: Graph Geodesic (Euclidean)}
-        \label{fig:euclidean_recon}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[b]{0.32\textwidth}
-        \includegraphics[width=\linewidth]{images/fashion_vanilla_geodesic_comparison_grid.png}
-        \caption{Method 2: Partial Riemannian Geodesic}
-        \label{fig:partial_recon}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[b]{0.32\textwidth}
-        \includegraphics[width=\linewidth]{images/fashion_spatial_geodesic_comparison_grid.png}
-        \caption{Method 3: Full Riemannian Geodesic}
-        \label{fig:full_recon}
-    \end{subfigure}
-    \caption{Qualitative comparison of FashionMNIST reconstructions from the three different post-hoc quantization methods. In each subfigure, the top row shows original images and the bottom row shows their reconstructions. The visual quality directly corresponds to the quantitative results in Table 1, with the Euclidean-based method producing the sharpest images and the Full Riemannian method showing significant degradation.}
-    \label{fig:fashion_recon}
-\end{figure*}
-
-\subsection{CIFAR-10: Post-Hoc vs. End-to-End Training}
-For the more complex CIFAR-10 dataset, the analysis was focused on comparing our strongest post-hoc method (Full Riemannian Geodesic on a Spatial VAE) against a baseline, end-to-end trained VQ-VAE. The results, summarized in Table~\ref{tab:cifar10_results}, suggest the superiority of the end-to-end approach. The baseline VQ-VAE outperforms the post-hoc method across all key metrics, including reconstruction quality (PSNR, SSIM) and perceptual similarity (LPIPS). This suggests the importance of jointly training the encoder, decoder, and codebook on complex data distributions.
+The results (Table~\ref{tab:cifar10_results}) suggest the superiority of the end-to-end approach, which outperforms the post-hoc method across all key metrics.
+This suggests the solidity of jointly training the encoder, decoder, and codebook on complex data distributions.
 
 \begin{table}[h!]
 \caption{CIFAR-10 Method Comparison.\protect\footnotemark}
@@ -200,37 +139,27 @@ Baseline VQ-VAE & \textbf{9.49} & \textbf{0.019} & \textbf{0.475} \\
 \end{table}
 \footnotetext{Metrics are computed consistently across all methods. While absolute values may be implementation-dependent, the relative performance ranking is valid.}
 
-\begin{figure*}[!p]
+\begin{figure}[ht!]
     \centering
-    \begin{subfigure}[b]{0.32\textwidth}
+    \begin{subfigure}[b]{0.49\columnwidth}
         \includegraphics[width=\linewidth]{images/cifar10_baselineVQ.png}
         \caption{Baseline VQ-VAE (Reconstructions)}
         \label{fig:cifar_baseline}
     \end{subfigure}
     \hfill
-    \begin{subfigure}[b]{0.32\textwidth}
+    \begin{subfigure}[b]{0.49\columnwidth}
         \includegraphics[width=\linewidth]{images/cifar10_spatial_geodesic_generated_samples.png}
         \caption{Post-Hoc Spatial Geodesic (Generated)}
         \label{fig:cifar_spatial}
     \end{subfigure}
-    \hfill
-    \begin{subfigure}[b]{0.32\textwidth}
-        \includegraphics[width=\linewidth]{images/cifar10_vanilla_euclidean_generated_samples.png}
-        \caption{Post-Hoc Vanilla Euclidean (Generated)}
-        \label{fig:cifar_vanilla}
-    \end{subfigure}
-    \caption{Qualitative comparison on CIFAR-10. (a) Reconstructions from the end-to-end baseline VQ-VAE are coherent and recognizable. (b) Samples generated by the Transformer in the post-hoc spatial geodesic pipeline are less coherent. (c) Samples from the post-hoc vanilla pipeline show clear signs of mode collapse, where the model repeatedly generates the same limited set of outputs, failing to capture the data diversity.}
+    \caption{Qualitative comparison on CIFAR-10. (a) Reconstructions from the end-to-end VQ-VAE. (b) Samples generated by the Transformer in the post-hoc spatial geodesic pipeline.}
     \label{fig:cifar_recon}
-\end{figure*}
+\end{figure}
 
 \section{Discussion and Conclusions}
-FashionMNIST results show that while Riemannian metrics achieve more geometrically faithful clustering (quantization error $3.40 \times 10^5$ vs. Euclidean's $3.55 \times 10^8$), this does not translate to superior image reconstruction. Latent-space distortion metrics do not perfectly correlate with image-space metrics like PSNR. Best performance comes from simple graph-geodesic clustering with Euclidean weights.
+On CIFAR-10, the "training mismatch" in post-hoc methods appears to create a performance bottleneck that is overcome by the joint, end-to-end optimization of a standard VQ-VAE.
 
-The partial Riemannian method suggests that limited application of the Riemannian metric may act as regularization, correcting local geometry without being dominated by noise in the fully-reweighted manifold. However, the full Riemannian method was tested on a \texttt{SpatialVAE} while others used vanilla VAE - an architectural confound requiring future work.
-
-On CIFAR-10, the "training mismatch" in post-hoc methods creates a performance bottleneck overcome by joint, end-to-end optimization of standard VQ-VAE.
-
-In conclusion, this project reveals a complex trade-off between geometric fidelity and reconstruction performance. While leveraging a decoder-induced Riemannian metric substantially reduces latent-space quantization error, this geometric accuracy does not translate to improved image quality. On FashionMNIST, simpler graph-geodesic methods with Euclidean weights outperformed more rigorous Riemannian approaches. On CIFAR-10, the "training mismatch" of post-hoc frameworks proved a significant bottleneck, with end-to-end trained VQ-VAE achieving superior results. Future work could address this by fine-tuning the decoder on discrete codebooks, combining benefits of geometric clustering with jointly-optimized performance.
+In conclusion, this project reveals a complex trade-off between geometric fidelity and reconstruction performance. While leveraging a metric derived from the VAE decoder's geometry can substantially reduce latent-space quantization error (as detailed in the Appendix), this does not guarantee superior image quality on complex datasets. For CIFAR-10, the end-to-end trained VQ-VAE achieves superior results. Future work could address the limitation of the post-hoc approach by fine-tuning the VQ-VAE decoder on the discrete codebook, potentially combining the benefits of geometric clustering with the performance of a jointly-optimized system. A full comparative analysis on the simpler FashionMNIST dataset, which shows different performance characteristics, is provided in the Appendix.
 
 \bibliography{references.bib}
 \bibliographystyle{dlaiml2025}
